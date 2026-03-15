@@ -226,6 +226,28 @@ NODE_ENV=development
 - E2E: `apps/web/e2e/`, use Playwright
 - Use factories for test data (faker), never hardcode
 
+## Code Quality Rules
+
+Read and apply everything in `conventions/code-quality.md`. Key highlights:
+- Max 200 lines per source file (controllers: 100). Excludes .sql, .json, .prisma, .md, generated, test files.
+- Max 25 lines per function body, cyclomatic complexity ≤ 8, nesting ≤ 3
+- 100% test coverage. The coverage report is the todo list.
+- Zero tolerance: no `any`, no `console.log`, no commented-out code, no magic values, no raw Prisma in responses
+- Parse data at boundaries (Zod, class-validator — agent picks)
+- File names suffixed by role: `.service.ts`, `.controller.ts`, `.repository.ts`, `.dto.ts`
+- Max 5 constructor injections per class
+
+## Worktree Isolation
+
+Read `conventions/worktree-lifecycle.md` for full details. The scaffold must support:
+- Deterministic port allocation (hash-based off branch name)
+- Per-worktree Postgres + Redis containers via docker-compose overlay
+- Docker labels (`symphony.worktree=${BRANCH_NAME}`) on all containers for orphan detection
+- `.env.template` with all port variables parameterized (never hardcoded)
+- Boot script that checks `SYMPHONY_MAX_WORKTREES` before creating
+- Teardown script that removes containers + volumes + worktree
+- Orphan detection on every new worktree creation
+
 ## Final Checks Before Declaring Done
 
 1. `pnpm install` completes without errors
