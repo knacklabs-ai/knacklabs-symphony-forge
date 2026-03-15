@@ -24,6 +24,12 @@ The `conventions/` directory is your knowledge base:
 | `ci-pipeline.md` | GitHub Actions, deploy pipeline, branch protection |
 | `linters.md` | Structural linter specs and error message format |
 | `worktree-lifecycle.md` | Isolation, ports, boot/teardown, orphan detection |
+| `core-beliefs.md` | Agent-first principles, tech selection, knowledge hierarchy |
+| `quality-grades.md` | Domain/layer grading, quality ratchet, automation |
+| `plans.md` | Execution plans as repo artifacts, decision logs, tech debt |
+| `agent-review.md` | Self-review, reviewer agents, Ralph Wiggum Loop, escalation |
+| `agent-observability.md` | Per-worktree Loki/Prometheus/Tempo, performance SLAs |
+| `doc-gardening.md` | Stale doc detection, verification badges, freshness rules |
 
 Do not skim these. Read each one fully before generating code.
 
