@@ -226,6 +226,19 @@ NODE_ENV=development
 - E2E: `apps/web/e2e/`, use Playwright
 - Use factories for test data (faker), never hardcode
 
+## Design Patterns
+
+Read and apply `conventions/design-patterns.md`. Critical requirements:
+
+- **Modular monolith from day one.** Each NestJS module = one bounded context. No cross-module imports. Modules communicate via event bus only.
+- **Provider pattern for all third-party services.** Interface → implementation. S3, Cognito, email, cache — all behind swappable interfaces with dev/test alternatives.
+- **Event bus with swappable backend.** In-memory (EventEmitter2) for dev/test. Production: SNS+SQS, Kafka, or NATS — picked per project needs. Interface stays the same.
+- **Repository pattern.** Services never touch Prisma. Repository wraps it, returns domain types.
+- **Three DTO shapes per entity.** Input (validated) → Domain (logic) → Response (serialized). Never leak one layer's shape to another.
+- **Typed config boundary.** No `process.env` outside config module. All env vars validated at boot.
+- **Error escalation.** Repository throws domain errors → Service catches and throws NestJS exceptions → Global filter handles everything.
+- **Guard composition.** Auth, feature flags, rate limits — all via decorators, never inline.
+
 ## Code Quality Rules
 
 Read and apply everything in `conventions/code-quality.md`. Key highlights:
