@@ -212,19 +212,16 @@ NODE_ENV=development
 }
 ```
 
-## Testing Requirements
+## Testing
 
-| Layer | Coverage Target |
-|-------|----------------|
-| Services | ≥ 80% |
-| Repositories | ≥ 70% |
-| Controllers | ≥ 60% |
-| Utils | ≥ 90% |
+Read and apply `conventions/testing.md`. Critical requirements:
 
-- Unit tests: co-located `*.spec.ts` files, use Vitest
-- Integration tests: `apps/api/test/*.e2e-spec.ts`, use Supertest
-- E2E: `apps/web/e2e/`, use Playwright
-- Use factories for test data (faker), never hardcode
+- **100% line coverage.** Coverage report IS the todo list. No exceptions.
+- **Unit tests:** co-located `*.spec.ts`, mock ONE layer below (service mocks repo, never two layers deep). No DB, no network. DON'T unit test controllers — integration tests cover them.
+- **Integration tests:** real Postgres, transaction rollback per test, Supertest full HTTP path, mock JWT injection (not real auth flow).
+- **E2E (Playwright):** critical user journeys only, Page Object Model, visual regression.
+- **Test factories with faker** — never hardcoded test data. Each describe block owns its data.
+- **Structural checks:** `pnpm check:all` runs custom linters (file size, import boundaries, naming).
 
 ## Design Patterns
 
@@ -274,6 +271,60 @@ Read and apply `conventions/frontend-patterns.md`. Critical requirements:
 - **Three states for every async component:** skeleton (not spinner), error (actionable), empty (designed with CTA).
 - **Accessibility enforced via eslint-plugin-jsx-a11y.** All images have alt, all inputs have labels, no onClick on divs.
 - **orval-generated API client** from OpenAPI spec. No manual fetch wrappers. Structured query key factories.
+
+## Database Conventions
+
+Read and apply `conventions/database.md`. Critical requirements:
+
+- **Table naming:** snake_case, plural (users, invoices). Columns: snake_case (created_at).
+- **Primary keys:** UUID via cuid2 — never auto-increment integers.
+- **Every table:** id + created_at + updated_at. Soft deletes: nullable `deleted_at`.
+- **Indexes:** every FK indexed. Composite indexes for frequent queries.
+- **Enums:** Postgres native for stable sets. String + CHECK for volatile sets.
+- **Migrations:** one concern per migration, always reversible, data migrations separate.
+- **Prisma:** multi-schema per domain, repository pattern (no raw SQL in services), soft delete middleware.
+- **Anti-patterns:** no JSON columns for structured data, no nullable booleans, no DB triggers for business logic, no cross-module joins.
+
+## Logging
+
+Read and apply `conventions/logging.md`. Critical requirements:
+
+- **Structured JSON logging** via pino. No console.log in backend — lint error.
+- **Log levels:** error (stack + context), warn (recoverable), info (business events), debug (off in prod).
+- **Correlation IDs:** generated per request via middleware, propagated through AsyncLocalStorage, included in error responses.
+- **PII masking:** automatic via serializer. Email (ra***@domain), phone (***5474), names/tokens never logged.
+- **Frontend:** console in dev only, errors to error tracking in prod.
+
+## Git Conventions
+
+Read and apply `conventions/git.md`. Critical requirements:
+
+- **Branches:** feature/, fix/, chore/, refactor/ + kebab-case. Agents: type/issue-NNN-description.
+- **Conventional commits enforced** via commitlint + husky. Format: type(scope): description.
+- **PR max 400 lines diff.** Squash merge only. PR title = conventional commit format.
+- **Git hooks:** pre-commit (lint-staged), commit-msg (commitlint), pre-push (typecheck + test).
+- **Agent rules:** commit every passing test cycle, each commit independently revertible, WIP squashed before PR.
+
+## Security
+
+Read and apply `conventions/security.md`. Critical requirements:
+
+- **Helmet** enabled globally with strict CSP. CORS: explicit allowlist, never `*`.
+- **Rate limiting** via @nestjs/throttler: 100 req/min global, 10 req/min for auth endpoints.
+- **Input validation:** all strings have @MaxLength, all arrays have max items, all numbers have range. No eval(), no dynamic SQL.
+- **JWT auth:** 15min access + 7d refresh, refresh token rotation, RBAC via guards.
+- **Secrets:** env vars only, .env.example with dummies, .env* in gitignore.
+- **CI:** npm audit fails on high/critical. Lock file committed.
+
+## API Patterns
+
+Read and apply `conventions/api-patterns.md`. Critical requirements:
+
+- **Versioning:** URL prefix /api/v1/. Breaking change = new version. Deprecation via Sunset header.
+- **REST:** plural kebab-case resources, PATCH over PUT, max 2 nested levels.
+- **Response format:** `{ data }` single, `{ data, meta }` lists, `{ error: { code, message, details } }` errors.
+- **Pagination:** cursor-based preferred, offset acceptable. Default 20, max 100.
+- **OpenAPI/Swagger:** auto-generated from NestJS decorators, CI-validated, orval generates typed client.
 
 ## Final Checks Before Declaring Done
 
