@@ -2,6 +2,31 @@
 
 You are setting up a fresh monorepo for **{{PROJECT_NAME}}**. Use the latest stable versions of all dependencies. Do NOT copy from a template — generate everything fresh.
 
+## Conventions
+
+Before writing any code, read every file in `conventions/`. These are your rules. Follow them exactly.
+
+The `conventions/` directory is your knowledge base:
+
+| File | What it covers |
+|------|---------------|
+| `architecture.md` | Layer model, dependency direction, domain boundaries |
+| `api-patterns.md` | REST conventions, versioning, pagination, OpenAPI |
+| `code-quality.md` | File size limits, zero tolerance rules, naming |
+| `database.md` | Schema naming, migrations, Prisma setup, anti-patterns |
+| `design-patterns.md` | Modular monolith, providers, events, repository, DTOs |
+| `frontend-patterns.md` | Composition, hooks, Tailwind, state hierarchy, a11y |
+| `testing.md` | Unit/integration/e2e strategy, factories, coverage |
+| `workers.md` | BullMQ queues, idempotency, retry, scheduling |
+| `logging.md` | Structured logging, correlation IDs, PII masking |
+| `security.md` | Helmet, rate limiting, JWT auth, input validation |
+| `git.md` | Branch naming, conventional commits, PR discipline |
+| `ci-pipeline.md` | GitHub Actions, deploy pipeline, branch protection |
+| `linters.md` | Structural linter specs and error message format |
+| `worktree-lifecycle.md` | Isolation, ports, boot/teardown, orphan detection |
+
+Do not skim these. Read each one fully before generating code.
+
 ## Stack
 
 | Layer | Tech |
@@ -14,177 +39,75 @@ You are setting up a fresh monorepo for **{{PROJECT_NAME}}**. Use the latest sta
 | Infrastructure | Docker Compose (Postgres + Redis), AWS CDK (TypeScript) for prod |
 | CI | GitHub Actions |
 | Testing | Vitest (unit), Supertest (integration), Playwright (e2e) |
+| Jobs | BullMQ + Redis |
 
 ## Directory Structure
-
-Create this exact layout:
 
 ```
 {{PROJECT_NAME}}/
 ├── apps/
 │   ├── api/                    # NestJS backend
 │   │   ├── src/
-│   │   │   ├── main.ts         # Bootstrap: port from env, Swagger, global validation pipe
-│   │   │   ├── app.module.ts   # Root module
-│   │   │   ├── app.controller.ts
-│   │   │   ├── app.service.ts
-│   │   │   ├── common/
-│   │   │   │   ├── filters/all-exceptions.filter.ts
-│   │   │   │   ├── interceptors/logging.interceptor.ts
-│   │   │   │   ├── pipes/validation.pipe.ts
-│   │   │   │   └── decorators/current-user.decorator.ts
-│   │   │   ├── config/         # @nestjs/config with validation
+│   │   │   ├── main.ts
+│   │   │   ├── app.module.ts
+│   │   │   ├── common/         # Filters, interceptors, pipes, decorators
+│   │   │   ├── config/         # @nestjs/config with typed validation
 │   │   │   ├── prisma/         # PrismaService + PrismaModule
-│   │   │   ├── auth/           # Cognito JWT auth (module, service, controller, guards, strategies)
+│   │   │   ├── auth/           # Cognito JWT auth
 │   │   │   └── health/         # Health check endpoint
 │   │   ├── prisma/
-│   │   │   ├── schema.prisma   # User model only (cognitoId, email, timestamps)
+│   │   │   ├── schema.prisma
 │   │   │   └── seed.ts
-│   │   ├── test/
-│   │   │   └── app.e2e-spec.ts
-│   │   ├── nest-cli.json
-│   │   ├── tsconfig.json
-│   │   └── package.json
+│   │   └── test/
 │   └── web/                    # React frontend
 │       ├── src/
-│       │   ├── main.tsx
-│       │   ├── App.tsx         # TanStack Router + QueryClientProvider
-│       │   ├── routes/
-│       │   │   ├── __root.tsx  # Root layout (nav, auth wrapper)
-│       │   │   ├── index.tsx   # Dashboard
-│       │   │   └── login.tsx   # Login page
-│       │   ├── lib/
-│       │   │   ├── api-client.ts   # orval-generated (after first API boot)
-│       │   │   ├── query-client.ts
-│       │   │   └── utils.ts        # cn() helper
-│       │   ├── components/ui/      # shadcn/ui components (add button only)
-│       │   ├── hooks/use-auth.ts
-│       │   └── stores/auth-store.ts
-│       ├── orval.config.ts
-│       ├── index.html
-│       ├── vite.config.ts
-│       ├── tailwind.config.ts
-│       ├── postcss.config.js
-│       ├── tsconfig.json
-│       └── package.json
+│       │   ├── routes/         # TanStack Router file-based routes
+│       │   ├── lib/            # API client (orval), query client, utils
+│       │   ├── components/     # UI components (shadcn/ui)
+│       │   ├── hooks/
+│       │   └── stores/
+│       └── e2e/                # Playwright tests
 ├── packages/
 │   └── shared/                 # Cross-app types and validation
-│       ├── src/
-│       │   ├── index.ts
-│       │   ├── types/index.ts
-│       │   └── validation/index.ts
-│       ├── tsconfig.json
-│       └── package.json
-├── linters/                    # Structural integrity checks
-│   ├── check-imports.ts        # Layer dependency direction enforcement
-│   ├── check-boundaries.ts    # Cross-domain boundary enforcement
-│   ├── check-docs.ts          # Doc freshness and reference validation
-│   └── README.md
+├── linters/                    # Structural integrity checks (see conventions/linters.md)
 ├── scripts/
-│   ├── boot.sh                # Start Postgres + Redis, migrate, seed, run dev
-│   ├── setup-worktree.sh      # Create isolated worktree with unique ports
-│   ├── teardown-worktree.sh   # Remove worktree + its containers
-│   └── generate-api-client.sh # Run orval to regenerate typed client
-├── docs/
-│   ├── architecture.md
-│   ├── domain-model.md
-│   ├── api-patterns.md
-│   ├── testing-strategy.md
-│   ├── quality-grades.md
-│   └── adr/001-monorepo-structure.md
-├── AGENTS.md
-├── WORKFLOW.md                 # Symphony config (YAML front matter + Liquid prompt)
-├── docker-compose.yml          # Postgres + Redis for local dev
-├── docker-compose.worktree.yml # Overlay for isolated worktree DBs
-├── turbo.json
-├── pnpm-workspace.yaml
-├── tsconfig.node.json
-├── vitest.workspace.ts
-├── .eslintrc.cjs
-├── .prettierrc
-├── .gitignore
-├── .env.example
-└── package.json                # Root scripts: test, check:all, typecheck, dev
+│   ├── boot.sh                 # Start infra, migrate, seed, run dev
+│   ├── setup-worktree.sh       # See conventions/worktree-lifecycle.md
+│   ├── teardown-worktree.sh
+│   └── generate-api-client.sh  # Run orval
+├── docs/                       # Copied from conventions/ — project's own knowledge base
+├── AGENTS.md                   # ~100 line table of contents (see below)
+├── WORKFLOW.md                 # Symphony config
+├── docker-compose.yml
+├── docker-compose.worktree.yml
+└── package.json
 ```
 
-## Architecture Rules (Bake These In)
+## AGENTS.md — The Map
 
-### Layer Dependency Direction
-```
-Types → Config → Repo → Service → Runtime → UI
-```
-Each layer may only import from layers below it. The `check-imports.ts` linter enforces this.
+Generate an AGENTS.md that is ~100 lines. It is a table of contents, NOT an encyclopedia.
 
-### Domain Boundaries
-- Each NestJS module = one domain
-- Domains do NOT import from sibling domains directly
-- Cross-domain types go through `packages/shared/`
-- Exception: `auth` guards are imported by all domains
+Structure it as:
 
-### Error Format (All API Errors)
-```json
-{
-  "statusCode": 400,
-  "message": "Validation failed",
-  "errors": [{ "field": "email", "message": "must be a valid email" }],
-  "timestamp": "ISO-8601",
-  "path": "/api/v1/..."
-}
-```
-Handled by `AllExceptionsFilter`. Never construct error responses manually — throw NestJS exceptions.
+1. **Where things are** — one-line pointers to directories and docs
+2. **Boot** — exact commands to get running (3-4 lines)
+3. **Architecture** — the layer rule in one sentence, link to `docs/architecture.md`
+4. **Common tasks** — add a domain module, add a migration, run checks, run tests (one-liner each)
+5. **What NOT to do** — 5-6 critical anti-patterns, one line each
+6. **Where to look next** — point to `docs/` for everything else
 
-### REST Conventions
-- Base URL: `/api/v1`
-- Swagger: `/api/docs`
-- Pagination: cursor-based (`limit` + `cursor` + `hasMore`)
-- All inputs validated via class-validator DTOs
-- All outputs are typed DTOs (never raw Prisma objects)
+The agent reads AGENTS.md first. It tells them where to dig deeper. It does NOT repeat what's in docs/.
 
-### Auth Flow
-```
-POST /auth/login → Cognito → JWT
-GET /api/resource → JwtAuthGuard → @CurrentUser() → handler
-```
-We validate Cognito JWTs against their JWKS. We don't issue our own tokens.
+## WORKFLOW.md
 
-### Worktree Isolation
-- `setup-worktree.sh` assigns unique ports per branch (hash-based)
-- Each worktree gets its own Postgres + Redis containers
-- `.env.worktree` overrides port defaults
-- `docker-compose.worktree.yml` provides the isolation overlay
-
-## Structural Linters
-
-### check-imports.ts
-Walks `apps/api/src/`, detects file layer by naming convention, scans imports, flags any import from a higher layer. Error messages must include:
-- Exact file path
-- What it illegally imports
-- Which rule was broken
-- What to do instead
-- Link to `docs/architecture.md`
-
-### check-boundaries.ts
-Detects cross-domain imports (module A importing module B's internals). Same error message quality requirements.
-
-### check-docs.ts
-Validates that every file referenced in AGENTS.md exists. Flags stale references.
-
-## AGENTS.md Requirements
-- ~100 lines, not a novel
-- Table of contents: where things are, what they do
-- Boot instructions (exact commands)
-- Architecture rules (brief, with links to docs/)
-- Common tasks: add domain module, add migration, run checks, run tests
-- What NOT to do (5-6 critical anti-patterns)
-
-## WORKFLOW.md Requirements
-- YAML front matter per Symphony v1 spec
+YAML front matter per Symphony v1 spec:
 - Linear as tracker (filter by state + label)
 - Workspace hooks: after_create (boot), before_run (rebase + install + migrate), after_run (push)
 - Codex config: auto-edit approval, shell allowlist, 2h timeout
 - Liquid prompt template referencing issue data
 
 ## Environment Variables (.env.example)
+
 ```
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/{{PROJECT_NAME}}
 REDIS_URL=redis://localhost:6379
@@ -196,12 +119,14 @@ COGNITO_REGION=
 NODE_ENV=development
 ```
 
-## Root package.json Scripts
+## Root Scripts (package.json)
+
 ```json
 {
   "dev": "turbo run dev",
   "build": "turbo run build",
   "test": "turbo run test",
+  "test:integration": "turbo run test:integration",
   "test:e2e": "turbo run test:e2e",
   "typecheck": "turbo run typecheck",
   "lint": "turbo run lint",
@@ -212,155 +137,15 @@ NODE_ENV=development
 }
 ```
 
-## Testing
+## Final Checks
 
-Read and apply `conventions/testing.md`. Critical requirements:
-
-- **100% line coverage.** Coverage report IS the todo list. No exceptions.
-- **Unit tests:** co-located `*.spec.ts`, mock ONE layer below (service mocks repo, never two layers deep). No DB, no network. DON'T unit test controllers — integration tests cover them.
-- **Integration tests:** real Postgres, transaction rollback per test, Supertest full HTTP path, mock JWT injection (not real auth flow).
-- **E2E (Playwright):** critical user journeys only, Page Object Model, visual regression.
-- **Test factories with faker** — never hardcoded test data. Each describe block owns its data.
-- **Structural checks:** `pnpm check:all` runs custom linters (file size, import boundaries, naming).
-
-## Design Patterns
-
-Read and apply `conventions/design-patterns.md`. Critical requirements:
-
-- **Modular monolith from day one.** Each NestJS module = one bounded context. No cross-module imports. Modules communicate via event bus only.
-- **Provider pattern for all third-party services.** Interface → implementation. S3, Cognito, email, cache — all behind swappable interfaces with dev/test alternatives.
-- **Event bus with swappable backend.** In-memory (EventEmitter2) for dev/test. Production: SNS+SQS, Kafka, or NATS — picked per project needs. Interface stays the same.
-- **Repository pattern.** Services never touch Prisma. Repository wraps it, returns domain types.
-- **Three DTO shapes per entity.** Input (validated) → Domain (logic) → Response (serialized). Never leak one layer's shape to another.
-- **Typed config boundary.** No `process.env` outside config module. All env vars validated at boot.
-- **Error escalation.** Repository throws domain errors → Service catches and throws NestJS exceptions → Global filter handles everything.
-- **Guard composition.** Auth, feature flags, rate limits — all via decorators, never inline.
-
-## Code Quality Rules
-
-Read and apply everything in `conventions/code-quality.md`. Key highlights:
-- Max 200 lines per source file (controllers: 100). Excludes .sql, .json, .prisma, .md, generated, test files.
-- Max 25 lines per function body, cyclomatic complexity ≤ 8, nesting ≤ 3
-- 100% test coverage. The coverage report is the todo list.
-- Zero tolerance: no `any`, no `console.log`, no commented-out code, no magic values, no raw Prisma in responses
-- Parse data at boundaries (Zod, class-validator — agent picks)
-- File names suffixed by role: `.service.ts`, `.controller.ts`, `.repository.ts`, `.dto.ts`
-- Max 5 constructor injections per class
-
-## Worktree Isolation
-
-Read `conventions/worktree-lifecycle.md` for full details. The scaffold must support:
-- Deterministic port allocation (hash-based off branch name)
-- Per-worktree Postgres + Redis containers via docker-compose overlay
-- Docker labels (`symphony.worktree=${BRANCH_NAME}`) on all containers for orphan detection
-- `.env.template` with all port variables parameterized (never hardcoded)
-- Boot script that checks `SYMPHONY_MAX_WORKTREES` before creating
-- Teardown script that removes containers + volumes + worktree
-- Orphan detection on every new worktree creation
-
-## Frontend Patterns
-
-Read and apply `conventions/frontend-patterns.md`. Critical requirements:
-
-- **Composition over props.** `<Card><Card.Header>` not `<Card headerTitle="...">`. Max 5 props per component.
-- **Max 100 lines per component.** One component per file.
-- **Custom hooks for all logic.** Components are templates, hooks are brains. Co-locate hooks with components.
-- **No useEffect for data fetching.** TanStack Query only. useEffect allowed for subscriptions, DOM measurement, third-party sync.
-- **State hierarchy:** Server → TanStack Query, Global → Zustand, Local → useState, Form → react-hook-form + zod, URL → TanStack Router. Never mix.
-- **Tailwind only.** No inline styles, no CSS modules, no styled-components. Semantic tokens (`text-primary`) not literals (`text-blue-500`). Design tokens in tailwind.config.ts.
-- **Three states for every async component:** skeleton (not spinner), error (actionable), empty (designed with CTA).
-- **Accessibility enforced via eslint-plugin-jsx-a11y.** All images have alt, all inputs have labels, no onClick on divs.
-- **orval-generated API client** from OpenAPI spec. No manual fetch wrappers. Structured query key factories.
-
-## Database Conventions
-
-Read and apply `conventions/database.md`. Critical requirements:
-
-- **Table naming:** snake_case, plural (users, invoices). Columns: snake_case (created_at).
-- **Primary keys:** UUID via cuid2 — never auto-increment integers.
-- **Every table:** id + created_at + updated_at. Soft deletes: nullable `deleted_at`.
-- **Indexes:** every FK indexed. Composite indexes for frequent queries.
-- **Enums:** Postgres native for stable sets. String + CHECK for volatile sets.
-- **Migrations:** one concern per migration, always reversible, data migrations separate.
-- **Prisma:** multi-schema per domain, repository pattern (no raw SQL in services), soft delete middleware.
-- **Anti-patterns:** no JSON columns for structured data, no nullable booleans, no DB triggers for business logic, no cross-module joins.
-
-## Logging
-
-Read and apply `conventions/logging.md`. Critical requirements:
-
-- **Structured JSON logging** via pino. No console.log in backend — lint error.
-- **Log levels:** error (stack + context), warn (recoverable), info (business events), debug (off in prod).
-- **Correlation IDs:** generated per request via middleware, propagated through AsyncLocalStorage, included in error responses.
-- **PII masking:** automatic via serializer. Email (ra***@domain), phone (***5474), names/tokens never logged.
-- **Frontend:** console in dev only, errors to error tracking in prod.
-
-## Git Conventions
-
-Read and apply `conventions/git.md`. Critical requirements:
-
-- **Branches:** feature/, fix/, chore/, refactor/ + kebab-case. Agents: type/issue-NNN-description.
-- **Conventional commits enforced** via commitlint + husky. Format: type(scope): description.
-- **PR max 400 lines diff.** Squash merge only. PR title = conventional commit format.
-- **Git hooks:** pre-commit (lint-staged), commit-msg (commitlint), pre-push (typecheck + test).
-- **Agent rules:** commit every passing test cycle, each commit independently revertible, WIP squashed before PR.
-
-## Security
-
-Read and apply `conventions/security.md`. Critical requirements:
-
-- **Helmet** enabled globally with strict CSP. CORS: explicit allowlist, never `*`.
-- **Rate limiting** via @nestjs/throttler: 100 req/min global, 10 req/min for auth endpoints.
-- **Input validation:** all strings have @MaxLength, all arrays have max items, all numbers have range. No eval(), no dynamic SQL.
-- **JWT auth:** 15min access + 7d refresh, refresh token rotation, RBAC via guards.
-- **Secrets:** env vars only, .env.example with dummies, .env* in gitignore.
-- **CI:** npm audit fails on high/critical. Lock file committed.
-
-## API Patterns
-
-Read and apply `conventions/api-patterns.md`. Critical requirements:
-
-- **Versioning:** URL prefix /api/v1/. Breaking change = new version. Deprecation via Sunset header.
-- **REST:** plural kebab-case resources, PATCH over PUT, max 2 nested levels.
-- **Response format:** `{ data }` single, `{ data, meta }` lists, `{ error: { code, message, details } }` errors.
-- **Pagination:** cursor-based preferred, offset acceptable. Default 20, max 100.
-- **OpenAPI/Swagger:** auto-generated from NestJS decorators, CI-validated, orval generates typed client.
-
-## Workers & Background Jobs
-
-Read and apply `conventions/workers.md`. Critical requirements:
-
-- **BullMQ + Redis.** One queue per domain (billing.queue, notification.queue — never a shared god queue).
-- **Idempotent always.** Every job has an idempotency key. Processor checks before doing work.
-- **Payloads are IDs, not objects.** Max 50KB. Processor fetches fresh data.
-- **Producer is thin** — enqueue only. Business logic lives in the processor.
-- **Retry:** exponential backoff, max 3 attempts default. Permanent failures (not-found, validation) skip retry via `UnrecoverableError`.
-- **Scheduling:** BullMQ repeatable jobs only. No node-cron, no setInterval.
-- **Max 5 minutes per job.** Longer work → chunk into child jobs with progress tracking.
-- **Observability:** every job logs started/completed/failed with duration + correlation ID. Bull Board in dev only.
-
-## CI Pipeline
-
-Read and apply `conventions/ci-pipeline.md`. Critical requirements:
-
-- **Everything blocks merge.** No advisory checks. Lint, typecheck, structural, unit, security, integration, build, e2e, API spec diff, coverage gate — all required.
-- **Parallel first tier:** lint + typecheck + structural + unit-tests + security run simultaneously.
-- **Sequential second tier:** integration-tests + build depend on first tier. E2e depends on both.
-- **Real Postgres + Redis** in CI via GitHub Actions services (Alpine images).
-- **Coverage gate:** 100% line coverage enforced. Below = blocked.
-- **API spec diff:** OpenAPI spec must match code. Out of date = blocked.
-- **Performance budget:** total PR pipeline under 8 minutes.
-- **Deploy:** staging auto-deploys on merge to main with smoke test. Production requires manual approval via GitHub environment protection.
-- **Branch protection:** squash merge only, linear history, 1 approval, all checks required.
-
-## Final Checks Before Declaring Done
-
-1. `pnpm install` completes without errors
-2. `pnpm typecheck` passes
-3. `pnpm check:all` passes
-4. `docker compose up -d` starts Postgres + Redis
-5. `pnpm db:migrate` runs successfully
-6. `pnpm dev` boots both API and web
-7. `curl localhost:3000/health` returns 200
-8. `curl localhost:3000/api/docs` shows Swagger UI
-9. Git initialized with conventional commit: `chore: scaffold {{PROJECT_NAME}}`
+1. `pnpm install` — no errors
+2. `pnpm typecheck` — passes
+3. `pnpm check:all` — passes
+4. `docker compose up -d` — Postgres + Redis start
+5. `pnpm db:migrate` — runs
+6. `pnpm dev` — boots API + web
+7. `curl localhost:3000/health` — 200
+8. `curl localhost:3000/api/docs` — Swagger UI
+9. AGENTS.md exists, ~100 lines, references all docs
+10. Git initialized: `chore: scaffold {{PROJECT_NAME}}`
