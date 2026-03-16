@@ -18,7 +18,7 @@ Build the v1 platform: Projects + Documents with Azure AD auth and Proof SDK int
 - **Editor:** Proof SDK (collaborative markdown — install as npm dependency, DO NOT fork)
 - **Auth:** Azure AD / Entra ID OIDC
 - **Build:** pnpm + Turborepo
-- **Testing:** Vitest (API + Web), 100% line coverage target
+- **Testing:** Vitest (API + Web), 100% line coverage
 
 ## Repo Structure
 
@@ -30,58 +30,76 @@ symphony-forge/
 ├── packages/
 │   └── shared/                 # Types, DTOs, constants
 ├── harness/
-│   └── nestjs-react/           # Convention files (READ THESE)
+│   └── nestjs-react/
 │       ├── SCAFFOLD_PROMPT.md
-│       └── conventions/*.md
+│       └── conventions/*.md    # ← YOUR RULEBOOK
 ├── projects/
-│   └── knack-forge/            # This project's plan
-│       └── PLAN.md
-├── turbo.json
-├── pnpm-workspace.yaml
-└── package.json
+│   └── knack-forge/PLAN.md
+└── AGENTS.md                   # ← YOU ARE HERE
 ```
 
-## Convention System
+## Convention System (MANDATORY)
 
-All conventions live in `harness/nestjs-react/conventions/*.md`. 
-**Read ALL relevant conventions before writing code for any module.**
+All conventions live in `harness/nestjs-react/conventions/*.md`.
 
-Key conventions for this project:
-- `architecture.md` — modular monolith, domain boundaries
-- `api-patterns.md` — REST conventions, error shapes, pagination
-- `code-quality.md` — 200-line max, zero tolerance rules
-- `database.md` — Prisma patterns, migrations, seeding
-- `frontend-patterns.md` — component rules, state management, Tailwind-only
-- `testing.md` — coverage requirements, factory patterns
-- `security.md` — auth, input validation, secrets handling
+### Before Writing ANY Module
+
+Read these conventions and follow them literally:
+
+| When building... | Read these conventions |
+|---|---|
+| Any backend module | `code-quality.md`, `api-patterns.md`, `architecture.md` |
+| Database/Prisma | `database.md` |
+| Auth/guards | `security.md` |
+| Tests | `testing.md` (factories, mocking, integration harness) |
+| Logging | `logging.md` (pino, correlation IDs, PII masking) |
+| Frontend components | `frontend-patterns.md`, `code-quality.md` |
+| Workers/queues | `workers.md` |
+| Git commits | `git.md` |
+| CI pipeline | `ci-pipeline.md` |
+
+### Per-Module Compliance Checklist
+
+After writing each module (e.g. `projects/`), verify:
+
+- [ ] All source files ≤200 lines (target 150). If >150, split per `code-quality.md` guidance.
+- [ ] All files use approved suffixes (18 listed in `code-quality.md`).
+- [ ] Zero `any`, `console.log`, `@ts-ignore`, magic numbers, commented-out code.
+- [ ] Every error thrown is `AppException` with category/code/description/retryable.
+- [ ] Constructor injections ≤5 per class.
+- [ ] Unit tests exist: `*.spec.ts` co-located, 100% line coverage for services/guards/pipes/utils.
+- [ ] Factories in `apps/api/test/factories/` using faker.
+- [ ] Structured logging with `nestjs-pino` + correlation IDs (not console, not NestJS Logger).
+- [ ] DTOs for all inputs AND outputs. No raw Prisma objects in responses.
+
+### When Conventions Conflict With PLAN.md
+
+- PLAN.md wins for project-specific decisions (auth provider, domain model, features).
+- Convention wins for code patterns (file size, testing, logging, error handling).
+- If genuinely ambiguous: add `// CONVENTION_CONFLICT: <convention> says X, PLAN says Y, chose Y because Z`
 
 ## Hard Rules
 
-1. **100% line coverage.** No exceptions.
+1. **100% line coverage.** No exceptions. Convention `testing.md` has patterns.
 2. **200-line max per source file** (excl. tests, .sql, .json, .prisma, .md, generated).
-3. **Every API error:** structured with category + retryable + description.
-4. **Every mutation:** idempotency handling where applicable.
-5. **Zero tolerance:** `any`, `console.log` in prod, `@ts-ignore` without issue, magic numbers, commented-out code.
-6. **Proof SDK is a dependency.** Do NOT modify its source. Use its HTTP API.
-7. **Proof ownerSecret must be encrypted at rest** in PostgreSQL.
+3. **Split at 150 lines** — see `code-quality.md` for how.
+4. **Structured logging** — `nestjs-pino` with correlation IDs. See `logging.md`.
+5. **Structured errors** — `AppException` only. See `code-quality.md`.
+6. **Zero tolerance:** `any`, `console.log` in prod, `@ts-ignore` without issue, magic numbers, commented-out code.
+7. **Proof SDK is a dependency.** Do NOT modify its source. Use its HTTP API.
+8. **Proof ownerSecret encrypted at rest** in PostgreSQL.
 
 ## Build Order
 
-Follow PLAN.md phases:
-1. Init monorepo (pnpm + Turborepo)
-2. Scaffold NestJS API with auth module
-3. Scaffold React dashboard with login
-4. Project CRUD
-5. Document CRUD + Proof SDK integration
-6. Proof SDK editor embed in frontend
-
-## When Conventions Conflict With the Plan
-
-- Raise it explicitly. Quote both sources. Propose resolution.
-- Don't silently pick one. Comment in the code with `// CONVENTION_CONFLICT: ...`
+Follow PLAN.md phases. For each phase:
+1. Read relevant conventions
+2. Build the module
+3. Write tests (100% coverage)
+4. Run compliance checklist above
+5. Fix violations before moving to next module
 
 ## When You're Stuck
 
 - Re-read the relevant convention file
-- If convention doesn't cover it, make the pragmatic choice and document WHY
+- If convention doesn't cover it, make the pragmatic choice and document WHY with a code comment
 - Prefer boring, correct code over clever code
