@@ -1,0 +1,12 @@
+node_modules
+dist
+coverage
+.turbo
+.vite
+.env
+.env.*
+!.env.example
+apps/*/dist
+apps/*/coverage
+packages/*/dist
+packages/*/coverage

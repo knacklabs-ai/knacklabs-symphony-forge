@@ -20,7 +20,7 @@ The repo currently contains the v1 product plan and conventions, but not the act
 ## Progress
 
 - [x] Create execution plan
-- [ ] Initialize monorepo root files
+- [x] Initialize monorepo root files
 - [ ] Scaffold API application
 - [ ] Scaffold web application
 - [ ] Add shared package
