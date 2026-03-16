@@ -1,20 +1,36 @@
-import { appEnv } from "@/config/env";
-import { apiClient } from "@/shared/lib/api-client";
-import { mockProjectDetail, mockProjects } from "@/shared/lib/mock-data";
-import type { ProjectDetail, ProjectSummary } from "@symphony/shared";
+import { appEnv } from '@/config/env'
+import { apiClient } from '@/shared/lib/api-client'
+import {
+  mockCreateProject,
+  mockGetProject,
+  mockListProjects,
+} from '@/shared/lib/mock-data'
+import type {
+  CreateProjectInput,
+  ProjectDetail,
+  ProjectSummary,
+} from '@/shared/types/models'
 
-export async function getProject(slug: string): Promise<ProjectDetail> {
+export async function getProject(slug: string) {
   if (appEnv.useMocks) {
-    return { ...mockProjectDetail, slug };
+    return mockGetProject(slug)
   }
 
-  return apiClient.get<ProjectDetail>(`/projects/${slug}`);
+  return apiClient.get<ProjectDetail>(`/projects/${slug}`)
 }
 
-export async function listProjects(): Promise<ProjectSummary[]> {
+export async function listProjects() {
   if (appEnv.useMocks) {
-    return mockProjects;
+    return mockListProjects()
   }
 
-  return apiClient.get<ProjectSummary[]>("/projects");
+  return apiClient.get<ProjectSummary[]>('/projects')
+}
+
+export async function createProject(input: CreateProjectInput) {
+  if (appEnv.useMocks) {
+    return mockCreateProject(input)
+  }
+
+  return apiClient.post<ProjectSummary>('/projects', input)
 }

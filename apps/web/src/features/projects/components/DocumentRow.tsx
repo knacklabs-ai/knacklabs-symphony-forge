@@ -1,9 +1,11 @@
-import { Link } from "react-router-dom";
-import type { DocumentSummary } from "@symphony/shared";
+import { Link } from 'react-router-dom'
+import { Badge } from '@/shared/components/Badge'
+import { formatDateTime } from '@/shared/lib/date'
+import type { DocumentSummary } from '@/shared/types/models'
 
 interface DocumentRowProps {
-  projectSlug: string;
-  summary: DocumentSummary;
+  projectSlug: string
+  summary: DocumentSummary
 }
 
 export function DocumentRow({ projectSlug, summary }: DocumentRowProps) {
@@ -14,14 +16,12 @@ export function DocumentRow({ projectSlug, summary }: DocumentRowProps) {
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-medium text-foreground">{summary.title}</span>
-        <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-secondary-foreground">
-          {summary.docType}
-        </span>
+        <Badge>{summary.docType}</Badge>
       </div>
       <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
         <span>{summary.authorName}</span>
-        <span>{new Date(summary.lastUpdated).toLocaleString()}</span>
+        <span>{formatDateTime(summary.lastUpdated)}</span>
       </div>
     </Link>
-  );
+  )
 }

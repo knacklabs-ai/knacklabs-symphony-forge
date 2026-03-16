@@ -1,24 +1,19 @@
-import { MsalProvider } from "@azure/msal-react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
-import type { PropsWithChildren } from "react";
-import { msalInstance } from "@/features/auth/msal/client";
+import { MsalProvider } from '@azure/msal-react'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { useState } from 'react'
+import type { PropsWithChildren } from 'react'
+import { AuthProvider } from '@/features/auth/providers/AuthProvider'
+import { msalInstance } from '@/features/auth/msal/client'
+import { createQueryClient } from '@/shared/lib/query-client'
 
 export function AppProviders({ children }: PropsWithChildren) {
-  const [client] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            retry: 1,
-          },
-        },
-      }),
-  );
+  const [queryClient] = useState(createQueryClient)
 
   return (
     <MsalProvider instance={msalInstance}>
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      </AuthProvider>
     </MsalProvider>
-  );
+  )
 }

@@ -1,73 +1,114 @@
+import type {
+  CreateDocumentInput,
+  CreateProjectInput,
+  ProjectDetail,
+  ProjectSummary,
+} from '@/shared/types/models'
 import {
-  type AgentKeySummary,
-  type AuthUser,
-  type DocumentSummary,
-  type ProjectDetail,
-  type ProjectSummary,
-} from "@symphony/shared";
+  initialAgentKeys,
+  initialDocuments,
+  initialMembers,
+  initialProjects,
+  raviUser,
+} from './mock-seed'
+import { slugify } from './slug'
 
-export const mockUser: AuthUser = {
-  email: "ravi@knacklabs.ai",
-  id: "user-ravi",
-  name: "Ravi Kiran",
-  role: "ADMIN",
-};
+let projects = [...initialProjects]
+let projectDocuments = structuredClone(initialDocuments)
+let projectMembers = structuredClone(initialMembers)
+let agentKeys = [...initialAgentKeys]
 
-const projectDocuments: DocumentSummary[] = [
-  {
-    authorName: "Ravi Kiran",
-    docType: "PLAN",
-    id: "doc-plan",
-    lastUpdated: "2026-03-16T16:00:00.000Z",
-    proofDocSlug: "knack-forge-plan",
-    slug: "v1-platform-plan",
-    title: "V1 Platform Plan",
-  },
-  {
-    authorName: "Maya Chen",
-    docType: "SPEC",
-    id: "doc-spec",
-    lastUpdated: "2026-03-15T11:30:00.000Z",
-    proofDocSlug: "proof-spec-shell",
-    slug: "editor-embed-spec",
-    title: "Editor Embed Spec",
-  },
-];
+function updateProjectSummary(projectSlug: string) {
+  const documents = projectDocuments[projectSlug] ?? []
 
-export const mockProjects: ProjectSummary[] = [
-  {
-    description:
-      "Projects + Documents foundation for KnackLabs engineering work.",
-    documentCount: projectDocuments.length,
-    id: "project-forge",
-    lastActive: projectDocuments[0].lastUpdated,
-    name: "Knack Forge",
-    slug: "knack-forge",
-    status: "ACTIVE",
-  },
-];
+  projects = projects.map((project) =>
+    project.slug === projectSlug
+      ? {
+          ...project,
+          documentCount: documents.length,
+          lastActive: documents[0]?.lastUpdated ?? project.lastActive,
+        }
+      : project,
+  )
+}
 
-export const mockProjectDetail: ProjectDetail = {
-  ...mockProjects[0],
-  documents: projectDocuments,
-  members: [
-    mockUser,
-    {
-      email: "maya@knacklabs.ai",
-      id: "user-maya",
-      name: "Maya Chen",
-      role: "MEMBER",
-    },
-  ],
-};
+export const mockSessionUser = raviUser
 
-export const mockAgentKeys: AgentKeySummary[] = [
-  {
-    active: true,
-    capabilities: ["read", "comment"],
-    id: "agent-codex",
-    keyPrefix: "codex-1a2b",
-    lastUsedAt: "2026-03-16T09:15:00.000Z",
-    name: "codex-worker",
-  },
-];
+export function resetMocks() {
+  agentKeys = [...initialAgentKeys]
+  projectDocuments = structuredClone(initialDocuments)
+  projectMembers = structuredClone(initialMembers)
+  projects = [...initialProjects]
+}
+
+export function mockListProjects() {
+  return [...projects]
+}
+
+export function mockGetProject(projectSlug: string) {
+  const project = projects.find((item) => item.slug === projectSlug)
+
+  if (!project) {
+    throw new Error('Project not found.')
+  }
+
+  return {
+    ...project,
+    members: [...(projectMembers[projectSlug] ?? [])],
+  } satisfies ProjectDetail
+}
+
+export function mockCreateProject(input: CreateProjectInput) {
+  const slug = slugify(input.name)
+  const project = {
+    description: input.description,
+    documentCount: 0,
+    id: `project-${slug}`,
+    lastActive: new Date().toISOString(),
+    name: input.name,
+    slug,
+    status: 'ACTIVE',
+  } satisfies ProjectSummary
+
+  projects = [project, ...projects]
+  projectDocuments[slug] = []
+  projectMembers[slug] = [raviUser]
+  return project
+}
+
+export function mockListDocuments(projectSlug: string) {
+  return [...(projectDocuments[projectSlug] ?? [])]
+}
+
+export function mockGetDocument(projectSlug: string, docSlug: string) {
+  const document = projectDocuments[projectSlug]?.find((item) => item.slug === docSlug)
+
+  if (!document) {
+    throw new Error('Document not found.')
+  }
+
+  return document
+}
+
+export function mockCreateDocument(projectSlug: string, input: CreateDocumentInput) {
+  const slug = slugify(input.title)
+  const document = {
+    authorName: raviUser.name,
+    docType: input.docType,
+    id: `doc-${projectSlug}-${slug}`,
+    lastUpdated: new Date().toISOString(),
+    proofDocSlug: `${projectSlug}-${slug}`,
+    proofUrl: `/documents/${projectSlug}-${slug}`,
+    slug,
+    title: input.title,
+    versionLabel: 'Just created',
+  }
+
+  projectDocuments[projectSlug] = [document, ...(projectDocuments[projectSlug] ?? [])]
+  updateProjectSummary(projectSlug)
+  return document
+}
+
+export function mockListAgentKeys() {
+  return [...agentKeys]
+}

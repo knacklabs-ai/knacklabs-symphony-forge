@@ -1,66 +1,93 @@
-import { useQuery } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
-import { PageHeader } from "@/shared/components/PageHeader";
-import { QueryState } from "@/shared/components/QueryState";
-import { getProject } from "../api/projects-api";
-import { DocumentRow } from "../components/DocumentRow";
+import { useMemo, useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { NewDocumentModal } from '@/features/documents/components/NewDocumentModal'
+import { useDocuments } from '@/features/documents/hooks/use-documents'
+import { Button } from '@/shared/components/Button'
+import { PageHeader } from '@/shared/components/PageHeader'
+import { Skeleton } from '@/shared/components/Skeleton'
+import { DocumentRow } from '../components/DocumentRow'
+import { ProjectFilters } from '../components/ProjectFilters'
+import { ProjectMembersCard } from '../components/ProjectMembersCard'
+import { useProject } from '../hooks/use-project'
 
 export function ProjectDetailPage() {
-  const { slug = "" } = useParams();
-  const query = useQuery({
-    enabled: slug.length > 0,
-    queryFn: () => getProject(slug),
-    queryKey: ["project", slug],
-  });
+  const navigate = useNavigate()
+  const { slug = '' } = useParams()
+  const [isModalOpen, setModalOpen] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const projectQuery = useProject(slug)
+  const documentsQuery = useDocuments(slug)
+  const search = searchParams.get('q') ?? ''
+  const type = searchParams.get('type') ?? 'ALL'
+  const documents = useMemo(
+    () =>
+      documentsQuery.data?.filter((document) => {
+        const matchesSearch = document.title.toLowerCase().includes(search.toLowerCase())
+        const matchesType = type === 'ALL' || document.docType === type
+        return matchesSearch && matchesType
+      }) ?? [],
+    [documentsQuery.data, search, type],
+  )
+
+  function updateFilter(key: 'q' | 'type', value: string) {
+    const nextParams = new URLSearchParams(searchParams)
+
+    if (!value || value === 'ALL') {
+      nextParams.delete(key)
+    } else {
+      nextParams.set(key, value)
+    }
+
+    setSearchParams(nextParams)
+  }
 
   return (
     <section className="space-y-6">
       <PageHeader
-        actions={
-          <Link
-            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-            to={`/projects/${slug}/docs/v1-platform-plan`}
-          >
-            Open latest document
-          </Link>
-        }
+        actions={<Button onClick={() => setModalOpen(true)}>New Document</Button>}
         eyebrow="Project"
         subtitle="Manage document creation, filter by type, and keep membership context close to the work."
-        title={query.data?.name ?? "Project detail"}
+        title={projectQuery.data?.name ?? 'Project detail'}
       />
-      <QueryState
-        emptyMessage="This project does not have any documents yet."
-        error={query.error}
-        isEmpty={(query.data?.documents.length ?? 0) === 0}
-        isLoading={query.isLoading}
-      >
+      <ProjectFilters
+        onSearchChange={(value) => updateFilter('q', value)}
+        onTypeChange={(value) => updateFilter('type', value)}
+        search={search}
+        type={type}
+      />
+      {projectQuery.isLoading || documentsQuery.isLoading ? (
+        <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+          <Skeleton className="h-80" />
+          <Skeleton className="h-80" />
+        </div>
+      ) : null}
+      {projectQuery.error || documentsQuery.error ? (
+        <div className="rounded-lg border border-border bg-surface p-6 text-sm text-muted-foreground">
+          Failed to load this project. Check your connection and retry.
+        </div>
+      ) : null}
+      {!projectQuery.isLoading && !documentsQuery.isLoading && projectQuery.data ? (
         <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
           <div className="space-y-3">
-            {query.data?.documents.map((document) => (
-              <DocumentRow
-                key={document.id}
-                projectSlug={slug}
-                summary={document}
-              />
-            ))}
+            {documents.length === 0 ? (
+              <div className="rounded-lg border border-border bg-surface p-6 text-sm text-muted-foreground">
+                No documents match the current filters.
+              </div>
+            ) : (
+              documents.map((document) => (
+                <DocumentRow key={document.id} projectSlug={slug} summary={document} />
+              ))
+            )}
           </div>
-          <aside className="rounded-lg border border-border bg-surface p-5">
-            <h2 className="font-display text-2xl text-surface-foreground">
-              Members
-            </h2>
-            <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
-              {query.data?.members.map((member) => (
-                <li key={member.id}>
-                  <p className="font-medium text-surface-foreground">
-                    {member.name}
-                  </p>
-                  <p>{member.email}</p>
-                </li>
-              ))}
-            </ul>
-          </aside>
+          <ProjectMembersCard project={projectQuery.data} />
         </div>
-      </QueryState>
+      ) : null}
+      <NewDocumentModal
+        isOpen={isModalOpen}
+        onClose={() => setModalOpen(false)}
+        onCreated={(docSlug) => void navigate(`/projects/${slug}/docs/${docSlug}`)}
+        projectSlug={slug}
+      />
     </section>
-  );
+  )
 }

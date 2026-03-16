@@ -1,13 +1,23 @@
-import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuthStore } from "../store/use-auth-store";
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { useAuth } from '../hooks/use-auth'
 
 export function AuthGuard() {
-  const location = useLocation();
-  const user = useAuthStore((state) => state.user);
+  const location = useLocation()
+  const { isAuthenticated, isLoading } = useAuth()
 
-  if (!user) {
-    return <Navigate replace state={{ from: location.pathname }} to="/login" />;
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="rounded-lg border border-border bg-card px-6 py-4 text-sm text-muted-foreground">
+          Preparing your workspace…
+        </div>
+      </div>
+    )
   }
 
-  return <Outlet />;
+  if (!isAuthenticated) {
+    return <Navigate replace state={{ from: location.pathname }} to="/login" />
+  }
+
+  return <Outlet />
 }

@@ -18,6 +18,28 @@ Linter error at hard max:
 
 Why: Agents load files into context repeatedly (read → edit → verify). Large files burn context budget and increase hallucination risk.
 
+### When to Split (Target Exceeded)
+
+When a service crosses **150 lines**, extract sub-services by domain concern:
+
+**Before (1 file, 195 lines):**
+```
+projects.service.ts  → CRUD + membership + authorization + slug logic
+```
+
+**After (3 files, ~65 lines each):**
+```
+projects.service.ts           → CRUD orchestration (calls sub-services)
+project-membership.service.ts → add/remove/update members
+project-authorization.service.ts → ownership checks, role guards
+```
+
+Rules:
+- The original service becomes the **orchestrator** — it delegates, doesn't implement
+- Each extracted service gets its own spec file
+- Extracting a utility function (<20 lines) into `*.utils.ts` is fine without a service wrapper
+- Never split just to dodge the limit — each piece must have **one reason to change**
+
 ## Function Length
 
 | Metric | Limit |
@@ -49,7 +71,30 @@ Rules:
 ## Naming
 
 ### Files
-- kebab-case, always suffixed: `*.service.ts`, `*.controller.ts`, `*.repository.ts`, `*.dto.ts`, `*.guard.ts`, `*.filter.ts`
+- kebab-case, always suffixed with role:
+
+| Suffix | Role |
+|--------|------|
+| `*.service.ts` | Business logic |
+| `*.controller.ts` | HTTP handlers |
+| `*.repository.ts` | Data access |
+| `*.dto.ts` | Request/response shapes |
+| `*.guard.ts` | Auth/access guards |
+| `*.filter.ts` | Exception filters |
+| `*.strategy.ts` | Passport strategies |
+| `*.interceptor.ts` | Request/response transforms |
+| `*.pipe.ts` | Input validation/transform |
+| `*.client.ts` | External service clients |
+| `*.config.ts` | Configuration factories |
+| `*.constants.ts` | Named constants |
+| `*.mappers.ts` | Entity ↔ DTO mappers |
+| `*.errors.ts` | Domain error definitions |
+| `*.types.ts` | Shared type definitions |
+| `*.decorator.ts` | Custom decorators |
+| `*.module.ts` | NestJS modules |
+
+Standalone entry points (`main.ts`, `openapi.ts`) and utility files (`*.utils.ts`) are the only exceptions.
+
 - Directory = domain: `billing/invoice.service.ts` not `utils/helpers.ts`
 - No barrel re-exports deeper than 1 level
 
@@ -77,13 +122,47 @@ Rules:
 | Raw Prisma objects in responses | Map to typed DTOs |
 | `.skip` or `xit` in tests | Only with linked issue comment |
 
+## Structured Errors
+
+All API errors use a single `AppException` class extending `HttpException`:
+
+```typescript
+// common/errors/app-exception.ts
+export class AppException extends HttpException {
+  constructor(options: {
+    status: HttpStatus;
+    category: 'VALIDATION' | 'AUTH' | 'NOT_FOUND' | 'CONFLICT' | 'INTERNAL';
+    code: string;           // e.g. 'PROJECT_SLUG_TAKEN'
+    description: string;    // Human-readable
+    retryable?: boolean;    // Default false
+  }) { ... }
+}
+```
+
+Response envelope:
+```json
+{
+  "statusCode": 409,
+  "category": "CONFLICT",
+  "code": "PROJECT_SLUG_TAKEN",
+  "description": "A project with slug 'my-app' already exists",
+  "retryable": false
+}
+```
+
+Rules:
+- Never throw raw `HttpException`, `BadRequestException`, etc. — always `AppException`
+- Each domain defines its error codes in `*.errors.ts` (e.g. `projects.errors.ts`)
+- `category` is one of the 5 values above — no freeform strings
+- `retryable: true` only for transient failures (DB timeout, external service down)
+
 ## Enforced But Flexible (What, Not How)
 
 | Invariant | Agent Chooses |
 |-----------|--------------|
 | Parse data at boundary | Zod, class-validator, custom — any works |
 | Structured logging | Format enforced, library flexible |
-| Error handling | Throw NestJS exceptions, never manual error objects |
+| Error handling | Use `AppException` with category/code/description/retryable |
 | API input validation | DTOs required, decorator style is up to agent |
 
 ## Explicitly Not Enforced

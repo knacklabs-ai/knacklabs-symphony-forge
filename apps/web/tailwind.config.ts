@@ -1,34 +1,35 @@
-import type { Config } from "tailwindcss";
+import type { Config } from 'tailwindcss'
 
 export default {
-  content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       borderRadius: {
-        lg: "var(--radius-lg)",
-        md: "var(--radius-md)",
-        sm: "var(--radius-sm)",
+        lg: 'var(--radius-lg)',
+        md: 'var(--radius-md)',
+        sm: 'var(--radius-sm)',
       },
       colors: {
-        accent: "hsl(var(--accent))",
-        background: "hsl(var(--background))",
-        border: "hsl(var(--border))",
-        card: "hsl(var(--card))",
-        foreground: "hsl(var(--foreground))",
-        muted: "hsl(var(--muted))",
-        "muted-foreground": "hsl(var(--muted-foreground))",
-        primary: "hsl(var(--primary))",
-        "primary-foreground": "hsl(var(--primary-foreground))",
-        secondary: "hsl(var(--secondary))",
-        "secondary-foreground": "hsl(var(--secondary-foreground))",
-        surface: "hsl(var(--surface))",
-        "surface-foreground": "hsl(var(--surface-foreground))",
+        accent: 'hsl(var(--accent))',
+        background: 'hsl(var(--background))',
+        border: 'hsl(var(--border))',
+        card: 'hsl(var(--card))',
+        destructive: 'hsl(var(--destructive))',
+        foreground: 'hsl(var(--foreground))',
+        muted: 'hsl(var(--muted))',
+        'muted-foreground': 'hsl(var(--muted-foreground))',
+        primary: 'hsl(var(--primary))',
+        'primary-foreground': 'hsl(var(--primary-foreground))',
+        secondary: 'hsl(var(--secondary))',
+        'secondary-foreground': 'hsl(var(--secondary-foreground))',
+        surface: 'hsl(var(--surface))',
+        'surface-foreground': 'hsl(var(--surface-foreground))',
       },
       fontFamily: {
-        display: ["Fraunces", "Georgia", "serif"],
-        sans: ['"IBM Plex Sans"', "system-ui", "sans-serif"],
+        display: ['Georgia', 'serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
       },
     },
   },
   plugins: [],
-} satisfies Config;
+} satisfies Config
