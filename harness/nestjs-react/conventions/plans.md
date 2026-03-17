@@ -6,11 +6,11 @@ Plans are first-class artifacts. They live in the repo. Agents read plans to und
 
 | Type | Purpose | Who Writes | Where | Size |
 |------|---------|-----------|-------|------|
-| **Project PLAN.md** | WHAT to build | Human | `projects/<name>/PLAN.md` | ~1 page |
+| **Project BRIEF.md** | WHAT to build | Human | `projects/<name>/BRIEF.md` | ~1 page |
 | **Execution plan** | HOW to build a specific piece | Agent or human | `plans/active/<name>.md` | 1-2 pages |
 | **Tech debt** | Known quality gaps | Agent | `plans/debt/<name>.md` | Short |
 
-### Project PLAN.md — Human Intent (The Input)
+### Project BRIEF.md — Human Intent (The Input)
 
 This is the starting point. Written by a human. Contains:
 
@@ -21,7 +21,7 @@ This is the starting point. Written by a human. Contains:
 - **Constraints** — auth, integrations, deploy target, business rules
 - **Out of Scope** — what v1 is NOT
 
-**What PLAN.md must NOT contain:**
+**What BRIEF.md must NOT contain:**
 
 - Prisma schemas or data models (derived from domain concepts)
 - API endpoint tables (derived from flows + tasks)
@@ -29,13 +29,13 @@ This is the starting point. Written by a human. Contains:
 - File structures or directory layouts (convention handles this)
 - Technology choices already locked in conventions
 
-If you're writing column names in PLAN.md, you're doing decomposition by hand. Stop.
+If you're writing column names in BRIEF.md, you're doing decomposition by hand. Stop.
 
-See `PLAN_TEMPLATE.md` in the harness root.
+See `BRIEF_TEMPLATE.md` in the harness root.
 
 ### Execution Plans — Build Tracking (The During)
 
-Created AFTER project PLAN.md exists and decomposition is done. Tracks a specific unit of work. One execution plan per branch/feature.
+Created AFTER project BRIEF.md exists and decomposition is done. Tracks a specific unit of work. One execution plan per branch/feature.
 
 | Condition | Action |
 |-----------|--------|

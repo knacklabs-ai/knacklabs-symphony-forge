@@ -13,7 +13,7 @@ packages/shared/   → Cross-app types, DTOs, constants
 linters/           → Structural integrity checks (5 scripts)
 scripts/           → boot.sh, setup-worktree.sh, teardown-worktree.sh, generate-api-client.sh
 harness/nestjs-react/conventions/  → YOUR RULEBOOK (20 files, ~4000 lines)
-projects/          → Per-project plans (PLAN.md = source of truth)
+projects/          → Per-project plans (BRIEF.md = source of truth)
 ```
 
 ## Boot
@@ -28,7 +28,7 @@ curl localhost:3000/health  # verify API
 
 NestJS + Prisma + PostgreSQL | React + Vite + Tailwind + shadcn + TanStack + Zustand | pnpm + Turborepo | Vitest | GitHub Actions
 
-Auth provider is project-specific (see PLAN.md). Convention defines the contract, not the provider.
+Auth provider is project-specific (see BRIEF.md). Convention defines the contract, not the provider.
 
 ## Architecture
 
@@ -93,21 +93,21 @@ All errors use `AppException` with `{ status, category, code, description, retry
 
 | Document | Contains | You Read It For |
 |----------|----------|-----------------|
-| `projects/<name>/PLAN.md` | What to build (flows, domain concepts, constraints) | Understanding the problem |
+| `projects/<name>/BRIEF.md` | What to build (flows, domain concepts, constraints) | Understanding the problem |
 | `plans/active/<name>.md` | How to build a specific piece (steps, progress, decisions) | Your current task |
 | `conventions/` | How ALL code must be written (patterns, rules, anti-patterns) | Every line of code |
 
-**PLAN.md is intent, not spec.** It says "users create projects and add documents." It does NOT say `POST /api/v1/projects { name, description }`. You derive the API from conventions + intent.
+**BRIEF.md is intent, not spec.** It says "users create projects and add documents." It does NOT say `POST /api/v1/projects { name, description }`. You derive the API from conventions + intent.
 
-## When Conventions Conflict With PLAN.md
+## When Conventions Conflict With BRIEF.md
 
-- PLAN.md wins for project decisions (auth provider, domain model, features)
-- Convention wins for code patterns (file size, testing, logging, errors)
-- If ambiguous: `// CONVENTION_CONFLICT: <convention> says X, PLAN says Y, chose Y because Z`
+- BRIEF.md wins for project decisions (auth provider, domain model, features)
+- Conventions win for code patterns (file size, testing, logging, errors)
+- If ambiguous: `// CONVENTION_CONFLICT: <convention> says X, BRIEF says Y, chose Y because Z`
 
 ## Where to Look Next
 
 - `harness/nestjs-react/conventions/` — all 20 convention files
 - `harness/nestjs-react/SCAFFOLD_PROMPT.md` — full scaffold spec
-- `projects/` — project-specific plans (PLAN.md per project)
+- `projects/` — project-specific plans (BRIEF.md per project)
 - `docs/` — getting started, philosophy, validation loop

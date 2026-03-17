@@ -1,4 +1,4 @@
-# {{PROJECT_NAME}} — PLAN.md
+# {{PROJECT_NAME}} — BRIEF.md
 
 ## What
 
@@ -53,5 +53,5 @@ What gets derived from this plan:
 - Build order (topological sort of the task graph)
 - Contradiction checks (graph vs conventions)
 
-If you're writing Prisma schemas, API endpoint tables, or page specs in PLAN.md,
+If you're writing Prisma schemas, API endpoint tables, or page specs in BRIEF.md,
 you're doing the graph's job by hand. Stop. Keep this document under 1 page. -->

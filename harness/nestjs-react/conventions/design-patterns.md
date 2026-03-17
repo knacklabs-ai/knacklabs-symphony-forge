@@ -84,7 +84,7 @@ export class FileStorageModule {
 
 Required providers (every project needs these interfaces from day one):
 - `FileStorage` — S3 / local filesystem
-- `AuthProvider` — OIDC provider / mock auth (specific provider per PLAN.md)
+- `AuthProvider` — OIDC provider / mock auth (specific provider per BRIEF.md)
 - `EmailSender` — SES / SendGrid / console logger
 - `CacheProvider` — Redis / in-memory Map
 - `EventBus` — see Event System below

@@ -10,7 +10,7 @@ A production-ready monorepo template for agent-driven development. Designed to s
 | ORM | Prisma 5 |
 | Database | PostgreSQL 16 |
 | Cache | Redis 7 |
-| Auth | OIDC provider from PLAN.md + @nestjs/passport JWT |
+| Auth | OIDC provider from BRIEF.md + @nestjs/passport JWT |
 | Frontend | React 18 + Vite 5 |
 | Routing | TanStack Router |
 | Data Fetching | TanStack Query |
