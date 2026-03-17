@@ -1,6 +1,199 @@
 # Frontend Patterns
 
-React conventions optimized for agent-authored code. Enforced by linters and code review.
+React 19.2 + Vite 8 + Rolldown conventions optimized for agent-authored code. Enforced by linters and code review.
+
+## React 19 Features (Use These)
+
+### React Compiler (Automatic Memoization)
+
+React Compiler is enabled via `@vitejs/plugin-react` v6 + Vite 8. It auto-memoizes components, hooks, and values at build time.
+
+**What changes:**
+- Stop writing `useMemo`, `useCallback`, `React.memo` — the compiler handles it
+- Existing `useMemo`/`useCallback` still work (escape hatch for explicit control)
+- No behavioral changes — just automatic performance optimization
+
+```tsx
+// BEFORE (manual memoization)
+const filtered = useMemo(() => items.filter(i => i.active), [items]);
+const handleClick = useCallback(() => setOpen(true), []);
+
+// AFTER (compiler handles it — write plain code)
+const filtered = items.filter(i => i.active);
+const handleClick = () => setOpen(true);
+```
+
+**Vite config:**
+```typescript
+// vite.config.ts
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [
+    react({
+      // React Compiler enabled by default in @vitejs/plugin-react v6
+      // To opt-in with babel plugin explicitly:
+      // babel: { plugins: [['babel-plugin-react-compiler']] },
+    }),
+  ],
+});
+```
+
+### `useActionState` (Form Actions)
+
+Replace manual `useState` + `onSubmit` handlers for forms that call server actions or async functions:
+
+```tsx
+// BEFORE
+function CreateProject() {
+  const [error, setError] = useState(null);
+  const [isPending, setIsPending] = useState(false);
+
+  async function handleSubmit(formData: FormData) {
+    setIsPending(true);
+    const result = await createProject(formData);
+    if (result.error) setError(result.error);
+    setIsPending(false);
+  }
+  // ...
+}
+
+// AFTER — useActionState manages pending + error state
+function CreateProject() {
+  const [state, submitAction, isPending] = useActionState(
+    async (_prev: State, formData: FormData) => {
+      const result = await createProject(formData);
+      if (result.error) return { error: result.error };
+      redirect('/projects');
+    },
+    { error: null },
+  );
+  return (
+    <form action={submitAction}>
+      {state.error && <ErrorBanner message={state.error} />}
+      <SubmitButton pending={isPending} />
+    </form>
+  );
+}
+```
+
+### `useOptimistic` (Optimistic Updates)
+
+For instant-feel UI updates before the server confirms:
+
+```tsx
+function TodoList({ todos }: { todos: Todo[] }) {
+  const [optimisticTodos, addOptimistic] = useOptimistic(
+    todos,
+    (current, newTodo: Todo) => [...current, newTodo],
+  );
+
+  async function handleAdd(formData: FormData) {
+    const todo = { id: crypto.randomUUID(), title: formData.get('title') as string };
+    addOptimistic(todo);       // Instantly shown
+    await createTodo(todo);    // Server confirms
+  }
+
+  return <ul>{optimisticTodos.map(t => <TodoItem key={t.id} todo={t} />)}</ul>;
+}
+```
+
+### `use()` Hook (Promise/Context Reading)
+
+Read promises and context values directly — replaces many `useEffect` + `useState` patterns:
+
+```tsx
+// Read a promise (suspends until resolved)
+function UserProfile({ userPromise }: { userPromise: Promise<User> }) {
+  const user = use(userPromise);
+  return <h1>{user.name}</h1>;
+}
+
+// Works inside conditionals (unlike other hooks)
+function Theme({ isDark }: { isDark: boolean }) {
+  if (isDark) {
+    const theme = use(DarkThemeContext);
+    return <div style={{ background: theme.bg }} />;
+  }
+  return <div />;
+}
+```
+
+### `<Activity>` (React 19.2 — Pre-rendering)
+
+Keep hidden UI alive (preserves state, pre-renders for fast navigation):
+
+```tsx
+// Instead of conditional rendering that destroys state:
+// {isVisible && <ExpensiveDashboard />}
+
+// Use Activity to hide without unmounting:
+<Activity mode={activeTab === 'dashboard' ? 'visible' : 'hidden'}>
+  <ExpensiveDashboard />
+</Activity>
+```
+
+**Use for:** tab panels, step wizards, pre-rendering next likely route.
+
+### `useEffectEvent` (React 19.2 — Effect Event Extraction)
+
+Extract reactive values from effects without causing re-subscriptions:
+
+```tsx
+function ChatRoom({ roomId, theme }: Props) {
+  // Event that reads latest theme without re-running the effect
+  const onConnected = useEffectEvent(() => {
+    showNotification('Connected!', theme);
+  });
+
+  useEffect(() => {
+    const connection = createConnection(roomId);
+    connection.on('connected', onConnected);
+    connection.connect();
+    return () => connection.disconnect();
+  }, [roomId]); // theme NOT in deps — correct!
+}
+```
+
+### Enhanced `<form>` Actions
+
+Forms can now use `action` prop directly with async functions. Combined with `useFormStatus`:
+
+```tsx
+import { useFormStatus } from 'react-dom';
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return <button type="submit" disabled={pending}>{pending ? 'Saving...' : 'Save'}</button>;
+}
+
+function ProjectForm() {
+  return (
+    <form action={async (formData) => { await saveProject(formData); }}>
+      <input name="title" required />
+      <SubmitButton />
+    </form>
+  );
+}
+```
+
+### Document Metadata (`<title>`, `<meta>`, `<link>`)
+
+Render metadata directly in components — no Helmet needed:
+
+```tsx
+function ProjectPage({ project }: { project: Project }) {
+  return (
+    <>
+      <title>{project.name} | App</title>
+      <meta name="description" content={project.summary} />
+      <div>{/* page content */}</div>
+    </>
+  );
+}
+```
+
+---
 
 ## Component Architecture
 
@@ -109,17 +302,32 @@ Allowed uses of useEffect:
 - Third-party library sync (chart libraries, maps, editors)
 - Focus management on mount
 
+**Use `useEffectEvent` (React 19.2)** when an effect needs to read reactive values without re-triggering. Never suppress the linter with `// eslint-disable-next-line`.
+
 ```tsx
-// WRONG
+// WRONG — fetching in useEffect
 useEffect(() => {
   fetch('/api/invoices').then(r => r.json()).then(setInvoices);
 }, []);
 
-// RIGHT
+// WRONG — suppressing lint for "extra" deps
+useEffect(() => {
+  connection.on('message', () => showToast(theme)); // theme changes re-subscribe
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [connection]);
+
+// RIGHT — TanStack Query for data
 const { data: invoices } = useQuery({
   queryKey: ['invoices'],
   queryFn: () => apiClient.getInvoices(),
 });
+
+// RIGHT — useEffectEvent for non-reactive reads
+const onMessage = useEffectEvent(() => showToast(theme));
+useEffect(() => {
+  connection.on('message', onMessage);
+  return () => connection.off('message', onMessage);
+}, [connection]);
 ```
 
 ## State Management Hierarchy
@@ -131,15 +339,20 @@ Each type of state has exactly one correct tool:
 | Server data | TanStack Query | API responses, paginated lists, cached entities |
 | Global client | Zustand | Auth session, theme, sidebar open/closed |
 | Local UI | useState | Modal visibility, toggle, accordion open |
-| Form | react-hook-form + zod | Input values, validation, submission state |
+| Form (complex) | react-hook-form + zod | Multi-field forms, validation, field arrays |
+| Form (simple) | useActionState | Single-action forms, server mutations |
+| Optimistic UI | useOptimistic | Instant-feel updates before server confirms |
 | URL | TanStack Router | Filters, pagination, active tab |
+| Hidden/pre-rendered UI | `<Activity>` | Tab panels, pre-render next route |
 
 ### Rules
 - **Never** fetch data in Zustand stores — that's TanStack Query's job
 - **Never** use useState for server data — no manual loading/error tracking
 - **Never** use React Context for frequently updating values (causes re-render cascade)
+- **Never** write `useMemo`/`useCallback`/`React.memo` — React Compiler handles memoization
 - Zustand stores are small and focused: `useAuthStore`, `useUIStore` — not `useAppStore`
 - URL state is state: if a user can share the link and see the same view, it belongs in the URL
+- Use `useActionState` for simple form → async action flows. Use `react-hook-form` for complex multi-step forms with field-level validation
 
 ```tsx
 // Zustand store — small, focused
@@ -353,6 +566,37 @@ src/
 - Domain components (`components/invoices/`) co-locate with their hooks
 - No `utils/helpers.ts` catch-all — name files by what they do
 
+## Vite 8 + Rolldown
+
+Vite 8 ships Rolldown (Rust-based bundler) replacing esbuild+Rollup. 10-30x faster builds, unified pipeline.
+
+### Key Config Points
+
+```typescript
+// vite.config.ts
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react'; // v6 — Oxc-based React Refresh + Compiler support
+
+export default defineConfig({
+  plugins: [react()],
+  build: {
+    // Rolldown is the default bundler in Vite 8 — no config needed
+    // minify: 'oxc' is the new default (replaces esbuild/terser)
+  },
+  server: {
+    // Console forwarding — client logs appear in terminal (auto-enabled for coding agents)
+    forwardConsole: true,
+  },
+});
+```
+
+### Rules
+- Use `@vitejs/plugin-react` v6 (Oxc-based transforms, React Compiler support)
+- Minification defaults to `oxc` — don't switch to `terser` unless debugging specific issues
+- Module-level persistent caching enabled by default — rebuilds are incremental
+
+---
+
 ## Anti-Patterns (Agents Do These — Block Them)
 
 | Anti-Pattern | Fix |
@@ -361,6 +605,11 @@ src/
 | Prop drilling 4+ levels | Use composition, context, or Zustand |
 | `any` in props/state | Typed interfaces always |
 | Fetching in useEffect | TanStack Query |
+| `useMemo`/`useCallback`/`React.memo` | Remove — React Compiler handles memoization |
+| `react-helmet` for `<title>`/`<meta>` | Use native document metadata (React 19) |
+| `{show && <Component />}` for tab panels | `<Activity mode={...}>` preserves state |
+| `// eslint-disable-next-line react-hooks/exhaustive-deps` | Use `useEffectEvent` for non-reactive reads |
+| Manual `isPending` + `setError` in forms | `useActionState` or `useFormStatus` |
 | Global spinner component | Skeleton loaders per component |
 | `onClick` on `<div>` | Use `<button>` — it's accessible |
 | Hardcoded strings in UI | i18n-ready: extract to constants minimum |
