@@ -9,6 +9,12 @@ import { PrismaService } from '../../src/prisma/prisma.service';
 // Lazily imported to avoid coupling at import time
 let appModule: typeof import('../../src/app.module');
 
+class RollbackSignal extends Error {
+  constructor() {
+    super('__ROLLBACK__');
+  }
+}
+
 export async function createTestApp(): Promise<INestApplication> {
   appModule = await import('../../src/app.module');
 
@@ -44,31 +50,16 @@ export function withTransaction(app: INestApplication) {
 
   return {
     async run(fn: (prisma: PrismaService) => Promise<void>): Promise<void> {
-      await (prisma.$transaction as Function)(async (tx: PrismaService) => {
-        // Temporarily swap prisma methods with the transaction client
-        const originalMethods = Object.getOwnPropertyNames(
-          Object.getPrototypeOf(prisma),
-        ).filter((k) => k.startsWith('$') || (tx as any)[k]);
-
-        const saved: Record<string, unknown> = {};
-        for (const key of Object.keys(tx as object)) {
-          saved[key] = (prisma as any)[key];
-          (prisma as any)[key] = (tx as any)[key];
+      try {
+        await prisma.$transaction(async (tx) => {
+          await fn(tx as unknown as PrismaService);
+          throw new RollbackSignal();
+        });
+      } catch (error) {
+        if (!(error instanceof RollbackSignal)) {
+          throw error;
         }
-
-        try {
-          await fn(prisma);
-        } finally {
-          // Restore
-          for (const [key, val] of Object.entries(saved)) {
-            (prisma as any)[key] = val;
-          }
-          // Force rollback
-          throw new Error('__ROLLBACK__');
-        }
-      }).catch((e: Error) => {
-        if (e.message !== '__ROLLBACK__') throw e;
-      });
+      }
     },
   };
 }

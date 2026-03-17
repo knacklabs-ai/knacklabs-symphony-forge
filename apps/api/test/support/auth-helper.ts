@@ -4,10 +4,11 @@
  *
  * Never use real auth flows in tests.
  */
-import * as jwt from 'jsonwebtoken';
+import { SignJWT } from 'jose';
 
 // Must match TEST_JWT_SECRET in .env.test
-const TEST_SECRET = process.env['TEST_JWT_SECRET'] ?? 'test-jwt-secret-do-not-use-in-prod';
+const TEST_SECRET =
+  process.env['TEST_JWT_SECRET'] ?? 'test-jwt-secret-do-not-use-in-prod';
 
 export interface TestClaims {
   sub?: string;
@@ -17,24 +18,32 @@ export interface TestClaims {
   [key: string]: unknown;
 }
 
-export function mockJwt(claims: TestClaims = {}): string {
-  return jwt.sign(
-    {
-      sub: claims.sub ?? 'user-test-123',
-      email: claims.email ?? 'test@test.com',
-      name: claims.name ?? 'Test User',
-      role: claims.role ?? 'MEMBER',
-      ...claims,
-    },
-    TEST_SECRET,
-    { expiresIn: '1h' },
-  );
+const secret = new TextEncoder().encode(TEST_SECRET);
+
+export async function mockJwt(claims: TestClaims = {}): Promise<string> {
+  return new SignJWT({
+    sub: claims.sub ?? 'user-test-123',
+    email: claims.email ?? 'test@test.com',
+    name: claims.name ?? 'Test User',
+    role: claims.role ?? 'MEMBER',
+    ...claims,
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('1h')
+    .sign(secret);
 }
 
-export function authHeader(claims: TestClaims = {}): Record<string, string> {
-  return { Authorization: `Bearer ${mockJwt(claims)}` };
+export async function authHeader(
+  claims: TestClaims = {},
+): Promise<Record<string, string>> {
+  return { Authorization: `Bearer ${await mockJwt(claims)}` };
 }
 
-export function adminAuthHeader(): Record<string, string> {
-  return authHeader({ role: 'ADMIN', sub: 'admin-test-123', email: 'admin@test.com' });
+export function adminAuthHeader(): Promise<Record<string, string>> {
+  return authHeader({
+    role: 'ADMIN',
+    sub: 'admin-test-123',
+    email: 'admin@test.com',
+  });
 }
