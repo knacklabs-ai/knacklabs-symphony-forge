@@ -1,14 +1,14 @@
 # Symphony Forge
 
-Production system for building client software using **Codex + OpenClaw ACPX** and harness engineering.
+Production system for building applications from in-repo architecture documents using **Codex**, with optional **OpenClaw ACPX** orchestration.
 
 ## What This Is
 
-Symphony Forge turns client ideas into shipped software using AI agents as the primary developers. It provides:
+Symphony Forge turns architecture docs, decisions, and product briefs already present in the target repo into shipped software using AI agents as the primary developers. It provides:
 
-- **Discovery** — a structured intake process that drives toward a precise, buildable spec
+- **Discovery** — structured intake that drives toward a precise, buildable spec
 - **Harness** — architecture conventions and scaffold prompts that agents follow to generate fresh projects
-- **Factory** — a Codex/OpenClaw delivery loop that plans, implements, verifies, reviews, and prepares PRs with deterministic guardrails
+- **Factory** — a doc-driven delivery loop that plans, decomposes, implements, tests, reviews, and prepares PRs with deterministic guardrails
 
 ## Structure
 
@@ -17,30 +17,31 @@ symphony-forge/
 ├── .codex/                         # Codex config, hooks, agents, prompts, deterministic scripts
 ├── .factory/                       # Machine-readable run state for feature execution
 ├── .github/workflows/              # Template workflow checks
+├── docs/                           # Setup guides, factory contract, architecture/decision inputs
 ├── harness/nestjs-react/           # Scaffold prompt + conventions
 ├── plans/                          # Active, completed, and debt plans
-├── projects/                       # Per-client project briefs
-├── docs/                           # Setup guides and operating model
-└── WORKFLOW.md                     # Linear <-> GitHub <-> ACP phase contract
+└── WORKFLOW.md                     # Linear <-> GitHub <-> run-artifact contract
 ```
 
 ## How It Works
 
-### 1. Discovery
+### 1. Put the docs in the repo
 
-Capture the feature or project as a brief. The output is an issue and a durable plan context.
+The generated application repo is the system of record. Put architecture and decision docs directly under `docs/architecture/` and `docs/decisions/` before planning.
 
-### 2. Planning
+### 2. Planning and decomposition
 
-Use a high-reasoning model (`claude-opus-4-6` or `gpt-5.4`) to produce a decision-complete plan with acceptance criteria and decomposition. Human approval is required before implementation.
+Use a high-reasoning planner to produce a decision-complete plan, then generate a Linear-first task graph from the in-repo docs. Human approval is required before implementation.
 
 ### 3. Implementation
 
-OpenClaw `main` orchestrates. ACP/ACPX `codex` sessions implement bounded tasks in isolated worktrees and branches.
+Implementation defaults to `gpt-5.3-codex` at medium reasoning. The repo works in plain Codex mode or OpenClaw + ACP/ACPX mode.
 
-### 4. Verify
+### 4. Test and verify
 
-Run deterministic verification via:
+Run the `automated-tester` subagent before deterministic verify. After review, run the `functional-checker` subagent for user-visible validation.
+
+Deterministic validation still runs via:
 
 ```bash
 python3 .codex/scripts/verify.py
@@ -53,9 +54,9 @@ Spawn separate Codex review subagents for:
 - performance
 - security
 
-Each review outputs a score, blockers, residual risks, and a merge recommendation. The parent Codex session can persist structured results with `python3 .codex/scripts/record_review_from_json.py`.
+Each review outputs a score, blockers, residual risks, and a merge recommendation.
 
-### 6. PR Ready
+### 6. PR ready
 
 GitHub gets the PR package. Linear stays the source of truth. Merge remains manual.
 
@@ -63,13 +64,15 @@ GitHub gets the PR package. Linear stays the source of truth. Merge remains manu
 
 - The harness stays fresh — no frozen app template rot.
 - Codex hooks enforce deterministic behavior at runtime.
-- OpenClaw ACPX keeps coding work in persistent Codex sessions.
-- Codex custom subagents keep review isolated and parallel.
-- The coordinator stays thin-context by pushing coding work to ACP workers and review work to read-only subagents.
+- OpenClaw ACPX is available for orchestration, but not required for normal repo use.
+- Codex custom subagents keep planning, testing, and review isolated.
+- The coordinator stays thin-context by pushing specialized work into subagents.
 
 ## Docs
 
 - [Codex Factory](docs/codex-factory.md)
+- [Factory Contract](docs/FACTORY.md)
+- [Quality Contract](docs/QUALITY.md)
 - [Harness Philosophy](docs/harness-philosophy.md)
 - [Validation Loop](docs/validation-loop.md)
 - [Symphony Setup](docs/symphony-setup.md)

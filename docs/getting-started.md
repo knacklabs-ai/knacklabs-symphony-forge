@@ -1,6 +1,6 @@
 # Getting Started with Symphony Forge
 
-Symphony Forge is a harness plus Codex/OpenClaw factory scaffold for building agent-ready software.
+Symphony Forge is a harness plus doc-driven factory scaffold for building agent-ready software.
 
 ---
 
@@ -30,6 +30,17 @@ cd my-app
 
 ---
 
+## Put Docs In Repo First
+
+Place the application inputs directly in the generated repo:
+
+- `docs/architecture/`
+- `docs/decisions/`
+
+This repo is intended to be self-contained. Do not make the factory depend on another local source repo path.
+
+---
+
 ## Initialize a Feature Run
 
 ```bash
@@ -40,25 +51,44 @@ That creates `.factory/run.json` and establishes the issue/branch contract.
 
 ---
 
-## Plan First
+## Plan and Decompose First
 
-Use a high-reasoning planner to create the approved plan artifact before implementation.
+Use `planner-high` with `.codex/prompts/planner.md` to create the approved plan artifact. Then use `docs-decomposer` with `.codex/prompts/decomposer.md` to create the task graph.
+
+Record decomposition with:
+
+```bash
+python3 .codex/scripts/record_decomposition_from_json.py --input /tmp/decomposition.json
+python3 .codex/scripts/render_linear_task_graph.py > /tmp/linear-task-graph.md
+```
 
 When approved, move the run forward:
 
 ```bash
-python3 .codex/scripts/update_run.py --phase implementing --plan-status approved
+python3 .codex/scripts/update_run.py --phase implementing --plan-status approved --decomposition-status recorded
 ```
 
 ---
 
-## Implement via ACP Codex
+## Implement
 
-Use OpenClaw + ACPX Codex for coding work. Keep the coordinator thin-context and use persistent ACP coding sessions for implementation.
+Use plain Codex or OpenClaw + ACPX Codex for coding work. Keep the coordinator thin-context and use bounded tasks from the recorded decomposition.
+
+Implementation default:
+- model: `gpt-5.3-codex`
+- reasoning: `medium`
 
 ---
 
-## Verify Deterministically
+## Automated Testing and Verify
+
+Run the `automated-tester` subagent before deterministic verify. If it returns structured JSON, record it with:
+
+```bash
+python3 .codex/scripts/record_test_from_json.py --kind automated --input /tmp/automated-test.json
+```
+
+Then run deterministic verify:
 
 ```bash
 python3 .codex/scripts/verify.py
@@ -95,10 +125,22 @@ python3 .codex/scripts/record_review.py --aspect security --score 9 --summary "S
 
 ---
 
+## Run Functional Checks
+
+After review passes, run the `functional-checker` subagent. If it returns structured JSON, record it with:
+
+```bash
+python3 .codex/scripts/record_test_from_json.py --kind functional --input /tmp/functional-test.json
+```
+
+Functional checks are required before PR-ready.
+
+---
+
 ## Mark PR Ready
 
 ```bash
 python3 .codex/scripts/pr_ready.py
 ```
 
-If artifacts are missing or review thresholds are not met, it exits non-zero.
+If decomposition, testing, review, or verification artifacts are missing, it exits non-zero.

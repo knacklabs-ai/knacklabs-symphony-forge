@@ -1,38 +1,48 @@
 # Codex Factory
 
-Symphony Forge acts as a Codex/OpenClaw factory template.
+Symphony Forge is a doc-driven Codex factory template with optional OpenClaw orchestration.
 
 ## Runtime Model
-- OpenClaw `main` orchestrates planning, decomposition, review, and tracker sync.
-- ACP/ACPX `codex` sessions handle implementation.
-- Codex custom subagents handle isolated review.
+- Architecture and decision docs live in the repo before planning starts.
+- A planner owns decomposition and writes a Linear-first task graph.
+- Plain Codex or OpenClaw + ACP/ACPX handles implementation.
+- Codex custom subagents handle testing and isolated review.
 - Linear is the source of truth.
 - GitHub mirrors implementation state and PR status.
 
-## Why ACP/ACPX
-OpenClaw documents ACP as the bridge for external coding runtimes and `acpx` as the runtime backend used for Codex-style coding sessions. That keeps implementation work in persistent coding contexts instead of bloating the coordinator session.
+## Why ACP/ACPX Is Optional
+OpenClaw ACP is useful for orchestration and long-running issue runs, but this template must also work in plain Codex without ACP.
 
-## Why Custom Review Subagents
-Codex subagents are explicit, parallel, and configurable per role. Project-scoped agents under `.codex/agents/*.toml` let the implementation session fan out into narrow, read-only reviewers without mixing review concerns back into the implementation thread.
+## Why Custom Subagents
+Codex subagents are explicit, parallel, and configurable per role. Project-scoped agents under `.codex/agents/*.toml` let the implementation session fan out into narrow specialists without mixing all concerns into one thread.
 
-The default review set is:
+The default specialist set is:
+- `planner-high`
+- `docs-decomposer`
+- `automated-tester`
+- `functional-checker`
 - `quality-reviewer`
 - `performance-reviewer`
 - `security-reviewer`
 
-All three are framework-independent and run on `gpt-5.3-codex` with `high` reasoning in `read-only` mode.
+Reasoning policy:
+- planning and decomposition: high
+- implementation default: medium
+- review and testing: explicit overrides
 
 ## Factory Directories
 - `.codex/` — hooks, agents, prompts, and deterministic scripts
 - `.factory/` — machine-readable run state
 - `plans/` — durable plan history
-- `projects/` — client or app briefs
+- `docs/architecture/` and `docs/decisions/` — in-repo source of truth
 
 ## Golden Path
 1. Run intake to initialize `.factory/run.json`
-2. Produce and approve a plan
-3. Start ACP Codex implementation session
-4. Run deterministic verification
-5. Spawn the three review subagents and wait for all results
-6. Record quality / performance / security review artifacts, preferably via `record_review_from_json.py`
-7. Mark PR ready and sync GitHub + Linear
+2. Review in-repo architecture and decision docs
+3. Produce and approve a plan
+4. Record decomposition from the docs
+5. Implement one bounded leaf task
+6. Run automated testing and deterministic verify
+7. Spawn the three review subagents and wait for all results
+8. Run the functional checker
+9. Mark PR ready and sync GitHub + Linear

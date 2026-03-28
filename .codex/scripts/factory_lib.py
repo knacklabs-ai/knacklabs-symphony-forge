@@ -24,8 +24,16 @@ def run_state_path(root: Path | None = None) -> Path:
     return factory_dir(root) / "run.json"
 
 
+def decomposition_state_path(root: Path | None = None) -> Path:
+    return factory_dir(root) / "decomposition.json"
+
+
 def verify_state_path(root: Path | None = None) -> Path:
     return factory_dir(root) / "verify.json"
+
+
+def tests_state_path(root: Path | None = None) -> Path:
+    return factory_dir(root) / "tests.json"
 
 
 def review_dir(root: Path | None = None) -> Path:

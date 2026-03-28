@@ -15,5 +15,7 @@ jobs:
           python-version: '3.11'
       - name: Check scaffold files
         run: python3 .codex/scripts/check_factory_scaffold.py
+      - name: Check AGENTS hygiene
+        run: python3 .codex/scripts/check_agents_hygiene.py
       - name: Compile factory scripts
         run: python3 -m compileall .codex/scripts

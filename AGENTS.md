@@ -1,91 +1,101 @@
 # AGENTS.md — Symphony Forge
 
-## What This Is
+## What This Repo Is
 
-Plan-driven engineering platform. High-reasoning planners define the work. ACP Codex workers implement it. Codex review subagents score it. Humans approve the plan and merge the PR.
+Symphony Forge is a software-factory template for turning in-repo architecture and decision docs into shipped applications.
 
-## Runtime Split
+It provides:
+- planner-owned decomposition
+- bounded implementation tasks
+- deterministic verification
+- testing and review subagents
+- PR-ready proof artifacts
 
-- **Coordinator:** OpenClaw `main`
-- **Planning:** `claude-opus-4-6` or `gpt-5.4` high reasoning
-- **Implementation:** ACP/ACPX `codex`
-- **Review:** Codex custom subagents `quality-reviewer`, `performance-reviewer`, `security-reviewer`
-
-Keep the coordinator thin-context. Push coding work into ACP Codex sessions. Push review into isolated read-only subagents.
-
-## Workspace
-
-```text
-.codex/                         -> Codex config, hooks, agents, prompts, deterministic scripts
-.factory/                       -> Machine-readable run state
-harness/nestjs-react/           -> Scaffold prompt + architecture conventions
-plans/                          -> Active, completed, debt plans
-projects/                       -> Project BRIEF.md files
-WORKFLOW.md                     -> Issue/branch/PR/session contract
-```
+`AGENTS.md` stays short on purpose. Use it as a map.
 
 ## Mandatory Read Order
 
 1. `WORKFLOW.md`
-2. `projects/<name>/BRIEF.md` (if present)
-3. `plans/active/<name>.md` (if present)
-4. Relevant convention files in `harness/nestjs-react/conventions/`
+2. `docs/FACTORY.md`
+3. `docs/QUALITY.md`
+4. `docs/architecture/`
+5. `docs/decisions/`
+6. the active plan and decomposition artifacts under `.factory/`
 
-## The One Rule That Gates Everything
+## Runtime Modes
 
-**Implementation does not start until the plan is approved.**
+Two modes are supported:
+- **Plain Codex** — local Codex sessions and subagents
+- **OpenClaw + ACP/ACPX** — orchestration and long-running issue execution
 
-A task is not PR-ready until all of these exist:
-- approved plan
-- `.factory/run.json`
-- `.factory/verify.json`
-- three review artifacts under `.factory/reviews/`
+The repo must work in both modes. ACP is useful for orchestration, not required for normal use.
 
-## Deterministic Commands
+## Phase Contract
 
-Use these, not ad hoc variants:
+1. place architecture and decision docs in-repo
+2. create or update the plan
+3. generate decomposition
+4. wait for approval
+5. implement one bounded task
+6. run automated testing
+7. run deterministic verify
+8. run review subagents
+9. run functional checks
+10. mark PR ready
 
-```bash
-python3 .codex/scripts/intake.py --issue ENG-123 --title "Feature title"
-python3 .codex/scripts/update_run.py --phase awaiting-approval --plan-status awaiting-approval
-python3 .codex/scripts/verify.py
-python3 .codex/scripts/record_review.py --aspect quality --score 9 --summary "..."
-python3 .codex/scripts/record_review_from_json.py --aspect quality --input /tmp/quality-review.json
-python3 .codex/scripts/pr_ready.py
-```
+Implementation never starts before plan approval and recorded decomposition.
 
-## Review Policy
+## Prompt and Agent Use
 
-Every implementation run gets three independent read-only review outputs:
+Prompt files under `.codex/prompts/` are phase contracts. They are invoked explicitly by the parent Codex session; hooks only load context and enforce gates.
+
+Default specialist set:
+- `planner-high`
+- `docs-decomposer`
+- `automated-tester`
+- `functional-checker`
 - `quality-reviewer`
 - `performance-reviewer`
 - `security-reviewer`
 
-Each reviewer must return:
-- `score`
-- `blocking_findings`
-- `non_blocking_findings`
-- `residual_risks`
-- `recommendation`
-- `reviewed_scope`
+## Reasoning Defaults
 
-Scores must be >= 8/10 and blockers must be empty before PR-ready.
+- planning / decomposition / architecture reconciliation: `high`
+- implementation default: `medium`
+- implementation escalation cases: `high`
+- review and testing agents: explicit per-agent overrides
 
-## ACP and Subagent Policy
+Do not default the entire repo to `high` reasoning for every task.
 
-Use ACP/ACPX Codex sessions for coding. Do not keep large implementation state in the coordinator session.
+## Deterministic Commands
 
-After deterministic verification passes, the parent Codex session must explicitly spawn the three review subagents, wait for all of them, and record their outputs into `.factory/reviews/`.
+```bash
+python3 .codex/scripts/intake.py --issue ENG-123 --title "Feature title"
+python3 .codex/scripts/record_decomposition_from_json.py --input /tmp/decomposition.json
+python3 .codex/scripts/update_run.py --phase awaiting-approval --plan-status awaiting-approval
+python3 .codex/scripts/verify.py
+python3 .codex/scripts/record_test_from_json.py --kind automated --input /tmp/automated.json
+python3 .codex/scripts/record_review_from_json.py --aspect quality --input /tmp/quality.json
+python3 .codex/scripts/pr_ready.py
+```
 
-Recommended mapping:
-- one Linear issue -> one branch
-- one branch -> one persistent ACP Codex session label
-- one PR -> one review package
+## Hard Gates
 
-## What Not To Do
+A task is not PR-ready until all of these exist:
+- approved plan
+- `.factory/run.json`
+- `.factory/decomposition.json`
+- `.factory/verify.json`
+- `.factory/tests.json`
+- `.factory/reviews/quality.json`
+- `.factory/reviews/performance.json`
+- `.factory/reviews/security.json`
 
-- Do not implement before plan approval.
-- Do not bypass `python3 .codex/scripts/verify.py` with direct test/lint/typecheck commands.
-- Do not merge planning, implementation, and review into one vague session.
-- Do not perform review inline when the custom review subagents can be spawned.
-- Do not open a PR without review scores and deterministic verify results.
+## Non-Negotiables
+
+- Keep tasks bounded and capability-driven.
+- Do not decompose by document file or arbitrary file count.
+- Do not bypass `verify.py` with ad hoc validation commands.
+- Do not do review inline when review subagents can be spawned.
+- Keep the template repo independent of any client-specific source repo.
+- Do not keep long policy blocks in `AGENTS.md`; move them into docs.

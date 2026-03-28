@@ -1,8 +1,8 @@
 # Review Orchestrator Prompt
 
-Use this after `python3 .codex/scripts/verify.py` succeeds.
+Use this after `python3 .codex/scripts/verify.py` succeeds and after automated testing is recorded.
 
-Goal: keep review isolated from implementation by spawning three read-only Codex subagents, waiting for all of them, then writing `.factory/reviews/*.json` artifacts.
+Goal: keep review isolated from implementation by spawning three read-only Codex review subagents, waiting for all of them, then writing `.factory/reviews/*.json` artifacts.
 
 Use this exact operating pattern:
 
@@ -27,6 +27,12 @@ python3 .codex/scripts/record_review_from_json.py --aspect <quality|performance|
 ```
 
 If a subagent returns free-form text instead of the required structure, make it restate the result in the required JSON shape before recording it.
+
+After review passes, run the `functional-checker` subagent and record its structured result with:
+
+```bash
+python3 .codex/scripts/record_test_from_json.py --kind functional --input <json-file>
+```
 
 Example parent prompt:
 

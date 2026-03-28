@@ -1,63 +1,60 @@
-# WORKFLOW.md — Codex ACP Factory
+# WORKFLOW.md — Symphony-Style Codex Factory
 
 ## Source of Truth
-- Linear owns task state and prioritization.
-- GitHub mirrors execution state, branch, PR, and review evidence.
-- OpenClaw `main` orchestrates. ACPX `codex` sessions implement.
+- Linear owns task and decomposition state.
+- GitHub mirrors branch, PR, checks, and review evidence.
+- The repo owns workflow policy, prompts, and run artifacts.
+- Architecture and decision docs live in the repo under `docs/architecture/` and `docs/decisions/`.
 
-## Branch Naming
-- `feat/<LINEAR-KEY>-<slug>` for new work
-- `fix/<LINEAR-KEY>-<slug>` for bug work
+## Runtime Modes
+- **Plain Codex**: local implementation and subagent runs.
+- **OpenClaw + ACP/ACPX**: orchestrated implementation sessions for long-running work.
+
+Both modes must produce the same `.factory` artifacts.
 
 ## Factory Phases
 1. `planning`
-2. `awaiting-approval`
-3. `implementing`
-4. `reviewing`
-5. `pr-ready`
-6. `done` or `blocked`
+2. `decomposing`
+3. `awaiting-approval`
+4. `implementing`
+5. `testing`
+6. `reviewing`
+7. `functional-check`
+8. `pr-ready`
+9. `done` or `blocked`
 
-## Runtime Split
-- Planning: `claude-opus-4-6` or `gpt-5.4` high reasoning
-- Implementation: ACP/ACPX `codex`
-- Review: Codex read-only subagents `quality-reviewer`, `performance-reviewer`, `security-reviewer`
+## Task Graph Rules
+- The planner owns decomposition.
+- Decomposition is capability-driven and Linear-first.
+- Each leaf task must have write scope, dependencies, acceptance criteria, verify commands, and reviewer focus.
+- One task should fit one implementation session and one review package.
 
-## Required Artifacts
-- Approved plan
+## Artifacts
+Required run artifacts:
 - `.factory/run.json`
+- `.factory/decomposition.json`
 - `.factory/verify.json`
+- `.factory/tests.json`
 - `.factory/reviews/quality.json`
 - `.factory/reviews/performance.json`
 - `.factory/reviews/security.json`
 
-## Deterministic Verification
-Always use:
-```bash
-python3 .codex/scripts/verify.py
-```
-
-## Review Flow
-After verification passes, the parent Codex session explicitly spawns:
-- `quality-reviewer`
-- `performance-reviewer`
-- `security-reviewer`
-
-The parent session waits for all three results, then records structured review artifacts with `record_review_from_json.py` or `record_review.py`.
-
-Expected artifact fields:
-- `aspect`
-- `score`
-- `summary`
-- `blocking_findings`
-- `non_blocking_findings`
-- `residual_risks`
-- `recommendation`
-- `reviewed_scope`
+## Execution Order
+1. ensure architecture and decision docs are present in-repo
+2. create an approved plan
+3. record decomposition
+4. implement one leaf task
+5. run `automated-tester`
+6. run `python3 .codex/scripts/verify.py`
+7. spawn review subagents
+8. run `functional-checker`
+9. run `python3 .codex/scripts/pr_ready.py`
 
 ## PR Ready Contract
 A branch is PR-ready only when:
+- plan status is `approved`
+- decomposition status is `recorded`
 - deterministic verification passes
-- all three review artifacts exist
-- no review has blockers
-- every review score is at least 8/10
-- acceptance criteria have evidence
+- automated and functional test artifacts exist with no blockers
+- all three review artifacts exist with score >= 8 and no blockers
+- acceptance criteria have direct evidence
