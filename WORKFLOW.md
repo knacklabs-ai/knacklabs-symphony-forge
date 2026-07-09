@@ -40,9 +40,10 @@ Gates are deterministic and run at phase transitions (`update_run.py`, `record_*
 - One task should fit one implementation session and one review package.
 
 ## Task Planning
-Per-task planning runs in Claude Code plan mode (exploration delegated to
-Codex read-only). The plan follows `.agents/prompts/planner.md`, including the
-mandatory **Decisions** section: every choice not derivable from BRIEF,
+Per-task planning runs in Claude Code plan mode by default (exploration
+delegated to Codex read-only); devs may instead use the `planner-high` Codex
+agent — the contract is identical either way. The plan follows
+`.agents/prompts/planner.md`, including the mandatory **Decisions** section: every choice not derivable from BRIEF,
 architecture, or existing records becomes a `docs/decisions/` record
 (`forge.py decision new`) before decomposition is recorded. Approval means the
 plan is in-repo — `forge.py plan save --from <plan-file>` writes

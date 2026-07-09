@@ -20,14 +20,18 @@ phases:
     notes: "Throwaway build for client sign-off; not production code."
   planning:
     owner: "claude-code:plan-mode"
+    alternate: "codex:planner-high"
     exploration: "codex:read-only"
     contract: ".agents/prompts/planner.md"
     plan_artifact: "plans/active/<issue>-<slug>.md via forge.py plan save"
     decisions: "docs/decisions/ records BEFORE decomposition is recorded"
     notes: >-
-      The planner delegates ALL codebase exploration to Codex read-only runs
-      (/codex:rescue or `codex exec -s read-only`) and plans from the findings.
-      Approval is the saved plan file, not a flag.
+      Claude Code plan mode is the default planner; the planner-high Codex
+      agent is the sanctioned alternative when a dev prefers it. Either way
+      the contract is identical: same sections (incl. Decisions), same
+      forge.py plan save step, same gates. When planning in Claude, delegate
+      ALL codebase exploration to Codex read-only runs (/codex:rescue or
+      `codex exec -s read-only`). Approval is the saved plan file, not a flag.
   implementation:
     owner: "codex:/codex:rescue"
     prompts: ".agents/prompts/implementer.md"

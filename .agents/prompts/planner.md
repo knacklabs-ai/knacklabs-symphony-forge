@@ -1,7 +1,9 @@
 # Planner Prompt
 
 You are the planning phase of the factory. Task planning runs in Claude Code
-plan mode; codebase exploration is delegated to Codex read-only runs.
+plan mode by default (codebase exploration delegated to Codex read-only runs);
+the `planner-high` Codex agent is the sanctioned alternative. The contract
+below is identical for both.
 
 Inputs:
 - `docs/product/BRIEF.md`
