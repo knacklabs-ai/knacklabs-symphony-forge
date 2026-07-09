@@ -73,7 +73,7 @@ Do not default the entire repo to `high` reasoning for every task.
 
 ## Deterministic Commands
 
-Lost? `python3 .agents/scripts/forge.py next` prints the current phase and exact next actions.
+Lost? `./forge next` prints the current phase and exact next actions.
 
 ```bash
 python3 .agents/scripts/intake.py --issue ENG-123 --title "Feature title"

@@ -15,7 +15,7 @@ Then, in Claude Code:
 
 > **"Set up a new CAW project called my-app"**
 
-The `caw-new-project` skill updates the harness, runs `doctor` (and fixes what it can), scaffolds the repo with `forge init`, and hands you to the project's own `/forge` skill. From then on, **ask "what now?" in any phase** — `/forge` runs the deterministic `forge.py next` engine and routes you (same answer for Codex sessions via `AGENTS.md`). Manual equivalents for every step: [Getting Started](docs/getting-started.md).
+The `caw-new-project` skill updates the harness, runs `doctor --fix` (installs the toolchain; only logins stay manual), scaffolds the repo with `forge init`, and hands you to the project's own `/forge` skill. From then on, **ask "what now?" in any phase** — `/forge` runs the deterministic `./forge next` engine and routes you (same answer for Codex sessions via `AGENTS.md`). Manual equivalents for every step: [Getting Started](docs/getting-started.md).
 
 ## The Lifecycle
 
@@ -49,7 +49,8 @@ symphony-forge/
 ├── harness.yaml                    # Phase ownership + skill precedence manifest
 ├── plans/                          # Active and completed task plans
 ├── AGENTS.md                       # The agent contract (both runtimes)
-└── CLAUDE.md                       # Import shim: @AGENTS.md + @.claude/CLAUDE.md
+├── CLAUDE.md                       # Import shim: @AGENTS.md + @.claude/CLAUDE.md
+└── forge                           # Dev entrypoint: ./forge next|init|doctor|decision|plan|context
 ```
 
 ## Why This Shape

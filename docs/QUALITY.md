@@ -2,7 +2,7 @@
 
 ## Quality Bar
 
-Every change must pass five independent checks:
+Every change must pass six independent checks:
 1. automated tests
 2. deterministic verify
 3. quality review

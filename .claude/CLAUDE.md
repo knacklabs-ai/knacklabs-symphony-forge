@@ -25,7 +25,8 @@ Read `AGENTS.md` first; it is the contract. Standards live in `constitution/`
   incl. the mandatory Decisions section); Codex `planner-high` is the sanctioned
   alternative — same contract. Approval is not real until the plan is in-repo:
   `python3 .agents/scripts/forge.py plan save --from <plan-file>`.
-- Decisions land in `docs/decisions/` via `python3 .agents/scripts/forge.py decision new <slug>`.
+- Decisions land in `docs/decisions/` via `./forge decision new <slug>`; only a
+  HUMAN runs `./forge decision accept <slug> --by "Name"`.
 - Phases ≥ planning require client sign-off (`python3 .agents/scripts/record_signoff.py`).
 - `python3 .agents/scripts/check_dual_runtime.py` must stay green.
 - gstack `/codex` and `/ship` are disabled in factory repos (see `harness.yaml`).

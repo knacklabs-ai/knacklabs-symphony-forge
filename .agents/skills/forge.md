@@ -3,10 +3,13 @@
 Canon lives in `AGENTS.md`, `WORKFLOW.md`, and `harness.yaml`. This skill only
 routes to it.
 
+`./forge <cmd>` (from repo root) is shorthand for
+`python3 .agents/scripts/forge.py <cmd>` — either form works everywhere below.
+
 ## ALWAYS start here
 
 ```bash
-python3 .agents/scripts/forge.py next
+./forge next
 ```
 
 That is the deterministic phase engine — it reads run state, the context
@@ -28,7 +31,8 @@ next actions. Never guess the phase yourself; run it, then execute or route:
 |---|---|
 | start a task / new feature | `python3 .agents/scripts/intake.py --issue <KEY> --title "<title>"` — then check `forge.py context list --pending` BEFORE planning |
 | plan is approved | `python3 .agents/scripts/forge.py plan save --from <plan-file>` (plan must follow `.agents/prompts/planner.md`, incl. Decisions section) |
-| record a decision | `python3 .agents/scripts/forge.py decision new <slug>` — human sets `status: accepted` + `confirmed_by`, never you |
+| record a decision | `./forge decision new <slug>` — draft only |
+| human confirms a decision | THE HUMAN runs `./forge decision accept <slug> --by "Name"` — never you; relay the command and wait |
 | made an assumption while implementing | `python3 .agents/scripts/forge.py plan assume "<one sentence>"` — dated, on the active plan, dev reviews before merge |
 | client signed off | `python3 .agents/scripts/record_signoff.py` |
 | harvest context / process the dump | follow `.agents/prompts/harvester.md`, then `forge.py context mark ...` |
