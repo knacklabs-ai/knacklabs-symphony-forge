@@ -7,7 +7,8 @@ CAW's harness for building client applications with **Claude Code coordination**
 One-time machine setup, then everything is conversation:
 
 ```bash
-git clone git@github.com:vrknetha/symphony-forge.git ~/Workdir/symphony-forge && ~/Workdir/symphony-forge/setup
+git clone git@github.com:vrknetha/symphony-forge.git
+cd symphony-forge && ./setup
 ```
 
 Then, in Claude Code:

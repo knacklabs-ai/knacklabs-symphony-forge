@@ -7,8 +7,9 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 for RUNTIME in "$HOME/.claude/skills" "$HOME/.codex/skills"; do
   DEST="$RUNTIME/caw-new-project"
   mkdir -p "$DEST"
-  cp "$HERE/install/claude/caw-new-project/SKILL.md" "$DEST/SKILL.md"
-  echo "Installed: $DEST/SKILL.md"
+  sed "s|{{HARNESS_PATH}}|$HERE|g" \
+    "$HERE/install/claude/caw-new-project/SKILL.md" > "$DEST/SKILL.md"
+  echo "Installed: $DEST/SKILL.md (harness: $HERE)"
 done
 echo 'Try it in Claude Code: "Set up a new CAW project called my-app"'
 "$HERE/.agents/scripts/forge.py" doctor 2>/dev/null || python3 "$HERE/.agents/scripts/forge.py" doctor || true

@@ -39,21 +39,34 @@ for key in ("project", "client_signoff", "client_signoff_record", "client_signof
         state[key] = previous[key]
 # Task-scoped artifacts belong to the previous task. Clear them only when that
 # task was archived (pr_ready/done); otherwise they are unrecovered evidence.
+# The approved plan in plans/active/ is an artifact too — abandonment moves it
+# to plans/debt/ rather than orphaning it.
 factory = root / ".factory"
+prev_issue = previous.get("issue_key", "")
+active_plans = (
+    list((root / "plans" / "active").glob(f"{prev_issue}-*.md")) if prev_issue else []
+)
 stale_files = [
     p for p in (factory / "decomposition.json", factory / "verify.json", factory / "tests.json")
     if p.exists()
 ] + list((factory / "reviews").glob("*.json"))
-if stale_files:
+if stale_files or active_plans:
     prev_archived = previous.get("phase") in {"pr-ready", "done"}
     if not prev_archived and not args.discard_active:
         raise SystemExit(
-            f"Task {previous.get('issue_key', '?')} has unarchived artifacts "
-            f"({len(stale_files)} file(s) in .factory/). Finish it (pr_ready.py archives "
-            "the evidence) or pass --discard-active to abandon it deliberately."
+            f"Task {prev_issue or '?'} has unarchived work "
+            f"({len(stale_files)} .factory artifact(s), {len(active_plans)} active plan(s)). "
+            "Finish it (pr_ready.py archives the evidence) or pass --discard-active "
+            "to abandon it deliberately."
         )
     for stale in stale_files:
         stale.unlink()
+    if active_plans:
+        debt = root / "plans" / "debt"
+        debt.mkdir(parents=True, exist_ok=True)
+        for plan in active_plans:
+            plan.rename(debt / plan.name)
+            print(f"Abandoned plan moved to plans/debt/{plan.name}")
 dump_json(run_state_path(root), state)
 print(f"Initialized factory state for {issue_key} -> {branch}")
 if not signed_off:

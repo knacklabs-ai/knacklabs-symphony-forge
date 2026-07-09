@@ -15,9 +15,10 @@ runnable by you — the user should only have to answer questions.
 
 ## Steps
 
-1. **Locate or fetch the harness.**
+1. **Locate or fetch the harness.** `./setup` stamped the clone location below
+   at install time; fall back to asking the user, then cloning where they say.
    ```bash
-   HARNESS=~/Workdir/symphony-forge
+   HARNESS="{{HARNESS_PATH}}"
    [ -d "$HARNESS/.git" ] && git -C "$HARNESS" pull --ff-only \
      || git clone git@github.com:vrknetha/symphony-forge.git "$HARNESS"
    ```

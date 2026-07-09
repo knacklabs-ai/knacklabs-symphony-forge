@@ -13,9 +13,12 @@ below are the equivalents (and what the agent runs for you).
 
 ## 1. Get the harness (once per machine)
 
+Clone it wherever you keep repos — `./setup` records the location for the
+bootstrap skill:
+
 ```bash
-git clone git@github.com:vrknetha/symphony-forge.git ~/Workdir/symphony-forge
-cd ~/Workdir/symphony-forge
+git clone git@github.com:vrknetha/symphony-forge.git
+cd symphony-forge
 ./setup
 ```
 
@@ -33,8 +36,8 @@ codex-plugin-cc, gstack, and the autoreview skill. Re-run until it says
 ## 3. Create your project
 
 ```bash
-python3 .agents/scripts/forge.py init --name my-app --target ~/Workdir/my-app
-cd ~/Workdir/my-app
+python3 .agents/scripts/forge.py init --name my-app --target ../my-app
+cd ../my-app
 ```
 
 This scaffolds a complete, git-initialized repo: dual-runtime adapters

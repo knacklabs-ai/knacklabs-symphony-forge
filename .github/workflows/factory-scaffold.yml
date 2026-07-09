@@ -23,6 +23,10 @@ jobs:
         run: python3 .agents/scripts/forge.py context scan --check
       - name: Compile factory scripts
         run: python3 -m compileall .agents/scripts
+      - name: Gate regression tests
+        run: |
+          python3 -m pip install --quiet pytest
+          python3 -m pytest .agents/tests -q
       - name: Smoke test forge init
         run: |
           python3 .agents/scripts/forge.py init --name smoke --target "$RUNNER_TEMP/forge-smoke"
