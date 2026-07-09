@@ -305,12 +305,17 @@ def check_thin_adapter(root: Path) -> None:
             ok = (
                 rel.as_posix() in {"config.toml", "hooks.json"}
                 or (rel.parts[0] == "agents" and f.suffix == ".toml")
+                or (
+                    len(rel.parts) == 3
+                    and rel.parts[0] == "skills"
+                    and rel.parts[2] == "SKILL.md"
+                )
             )
             if not ok:
                 violation(
                     f"{f.relative_to(root)} is not an adapter file. .codex/ may contain only "
-                    "config.toml, hooks.json, and agents/*.toml; scripts and prompts live in "
-                    ".agents/."
+                    "config.toml, hooks.json, agents/*.toml, and skills/<name>/SKILL.md; "
+                    "scripts, prompts, and skill bodies live in .agents/."
                 )
 
 

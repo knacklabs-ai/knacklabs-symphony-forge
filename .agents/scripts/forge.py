@@ -92,6 +92,8 @@ def cmd_init(args: argparse.Namespace) -> None:
     for name in COPY_CODEX:
         shutil.copy2(root / ".codex" / name, target / ".codex" / name)
     shutil.copytree(root / ".codex" / "agents", target / ".codex" / "agents", dirs_exist_ok=True)
+    if (root / ".codex" / "skills").is_dir():
+        shutil.copytree(root / ".codex" / "skills", target / ".codex" / "skills", dirs_exist_ok=True)
     for name in COPY_FILES:
         src = root / name
         if src.exists():

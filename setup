@@ -4,9 +4,11 @@
 # conversation. Idempotent; re-run after harness updates.
 set -e
 HERE="$(cd "$(dirname "$0")" && pwd)"
-DEST="$HOME/.claude/skills/caw-new-project"
-mkdir -p "$DEST"
-cp "$HERE/install/claude/caw-new-project/SKILL.md" "$DEST/SKILL.md"
-echo "Installed: $DEST/SKILL.md"
+for RUNTIME in "$HOME/.claude/skills" "$HOME/.codex/skills"; do
+  DEST="$RUNTIME/caw-new-project"
+  mkdir -p "$DEST"
+  cp "$HERE/install/claude/caw-new-project/SKILL.md" "$DEST/SKILL.md"
+  echo "Installed: $DEST/SKILL.md"
+done
 echo 'Try it in Claude Code: "Set up a new CAW project called my-app"'
 "$HERE/.agents/scripts/forge.py" doctor 2>/dev/null || python3 "$HERE/.agents/scripts/forge.py" doctor || true
