@@ -1,119 +1,107 @@
 # Getting Started with Symphony Forge
 
-Symphony Forge is a harness plus doc-driven factory scaffold for building agent-ready software.
+Symphony Forge is a dual-runtime harness plus doc-driven factory for building
+agent-ready software. Claude Code coordinates; Codex executes. This page is the
+one blessed path from empty directory to first feature PR.
 
 ---
 
-## Prerequisites
-
-| Tool | Minimum version |
-|------|-----------------|
-| Node.js | 20.x |
-| pnpm | 9.x |
-| Docker Desktop | recent |
-| Git | 2.x |
-| OpenClaw | current |
-| Codex login | subscription auth |
-
----
-
-## Use as a GitHub Template
-
-Create a new repo from `vrknetha/symphony-forge`, then clone it.
+## 1. Get the harness (once per machine)
 
 ```bash
-gh repo create my-org/my-app --template vrknetha/symphony-forge --private
-
-git clone git@github.com:my-org/my-app.git
-cd my-app
+git clone git@github.com:vrknetha/symphony-forge.git ~/Workdir/symphony-forge
+cd ~/Workdir/symphony-forge
 ```
 
----
+## 2. Check your machine
 
-## Put Docs In Repo First
+```bash
+python3 .agents/scripts/forge.py doctor
+```
 
-Place the application inputs directly in the generated repo:
+Fix anything it reports — it prints the exact install command per tool. It
+checks: git, Node 20+, pnpm, Docker, Codex CLI + login, Claude Code,
+codex-plugin-cc, gstack, and the autoreview skill. Re-run until it says
+`ready`.
 
-- `docs/product/BRIEF.md`
-- `docs/architecture/`
-- `docs/decisions/`
+## 3. Create your project
 
-Start by reading:
-- `docs/product/README.md`
-- `docs/architecture/README.md`
-- `docs/decisions/README.md`
+```bash
+python3 .agents/scripts/forge.py init --name my-app --target ~/Workdir/my-app
+cd ~/Workdir/my-app
+```
 
-This repo is intended to be self-contained. Do not make the factory depend on another local source repo path.
+This scaffolds a complete, git-initialized repo: dual-runtime adapters
+(`.claude/`, `.codex/`), shared agent assets (`.agents/`), the vendored
+engineering constitution (pinned in `constitution/VENDORED_FROM`), the phase
+manifest (`harness.yaml`), doc contracts, and an armed sign-off gate. It fails
+on a non-empty target; there is no merge mode.
 
----
+> Do NOT create client projects with `gh repo create --template` — a template
+> copy drags along the harness's own plans, run state, and history. The
+> GitHub template flag exists for forking the harness itself, not for
+> starting projects.
 
-## Initialize a Feature Run
+## 4. Discovery and prototype (phases 0a / 0b — lightweight on purpose)
+
+1. Fill `docs/product/DISCOVERY.md` (problem, stakeholders, client-approved
+   decisions). Use gstack `/office-hours` in Claude Code for the discovery
+   conversation.
+2. Fill `docs/product/BRIEF.md` (contract: `docs/product/README.md`).
+3. Prototype freely — no `.factory` ceremony applies before sign-off.
+4. Capture every client decision as a record:
+
+```bash
+python3 .agents/scripts/forge.py decision new <slug>
+```
+
+## 5. Record client sign-off (the gate)
+
+```bash
+python3 .agents/scripts/forge.py decision new client-signoff
+# get the client's confirmation, then set in the record:
+#   status: accepted
+#   confirmed_by: "<human name>"
+python3 .agents/scripts/record_signoff.py
+```
+
+Every phase from `planning` onward is refused until this is recorded —
+`update_run.py` and the pre-tool hook both enforce it.
+
+## 6. Generate the workspace
+
+Hand `harness/nestjs-react/SCAFFOLD_PROMPT.md` to Codex (via `/codex:rescue`
+from Claude Code, or `codex exec`) to generate the nx workspace following the
+conventions in `harness/nestjs-react/conventions/` and `constitution/`.
+
+## 7. The feature loop
+
+For each feature (see `WORKFLOW.md` and `harness.yaml` for phase ownership):
 
 ```bash
 python3 .agents/scripts/intake.py --issue ENG-123 --title "Build billing dashboard"
 ```
 
-That creates `.factory/run.json` and establishes the issue/branch contract.
-
----
-
-## Plan and Decompose First
-
-Use `planner-high` with `.agents/prompts/planner.md` to create the approved plan artifact. Then use `docs-decomposer` with `.agents/prompts/decomposer.md` to create the task graph.
-
-Record decomposition with:
+1. **Plan** — Claude Code plan mode; delegate all codebase exploration to
+   Codex read-only runs (`/codex:rescue` or `codex exec -s read-only`).
+2. **Decompose** — `docs-decomposer` with `.agents/prompts/decomposer.md`, then:
 
 ```bash
 python3 .agents/scripts/record_decomposition_from_json.py --input /tmp/decomposition.json
-python3 .agents/scripts/render_linear_task_graph.py > /tmp/linear-task-graph.md
-```
-
-When approved, move the run forward:
-
-```bash
 python3 .agents/scripts/update_run.py --phase implementing --plan-status approved --decomposition-status recorded
 ```
 
----
-
-## Implement
-
-Use plain Codex or OpenClaw + ACPX Codex for coding work. Keep the coordinator thin-context and use bounded tasks from the recorded decomposition.
-
-Implementation default:
-- model: `gpt-5.5`
-- reasoning: `medium`
-
----
-
-## Automated Testing and Verify
-
-Run the `automated-tester` subagent before deterministic verify. If it returns structured JSON, record it with:
+3. **Implement** — delegate to Codex (`/codex:rescue --background`), one
+   bounded task at a time.
+4. **Test + verify**:
 
 ```bash
 python3 .agents/scripts/record_test_from_json.py --kind automated --input /tmp/automated-test.json
-```
-
-Then run deterministic verify:
-
-```bash
 python3 .agents/scripts/verify.py
 ```
 
-This writes `.factory/verify.json`.
-
----
-
-## Spawn Review Subagents
-
-After verification passes, have the parent Codex session explicitly spawn:
-- `quality-reviewer`
-- `performance-reviewer`
-- `security-reviewer`
-
-These are project-scoped custom agents defined under `.codex/agents/`. They are read-only and framework-independent.
-
-If the parent Codex session already has structured reviewer JSON, prefer:
+5. **Review** — spawn `quality-reviewer`, `performance-reviewer`,
+   `security-reviewer` (project-scoped agents under `.codex/agents/`); record:
 
 ```bash
 python3 .agents/scripts/record_review_from_json.py --aspect quality --input /tmp/quality-review.json
@@ -121,32 +109,31 @@ python3 .agents/scripts/record_review_from_json.py --aspect performance --input 
 python3 .agents/scripts/record_review_from_json.py --aspect security --input /tmp/security-review.json
 ```
 
-For manual fallback, record the results with:
+   For security-sensitive, migration, or cross-domain tasks, escalate with the
+   autoreview skill at PR-ready (see `harness.yaml`) — never both loops on one
+   task.
 
-```bash
-python3 .agents/scripts/record_review.py --aspect quality --score 9 --summary "Code quality acceptable" --recommendation approve --reviewed-scope src/api/orders.ts
-python3 .agents/scripts/record_review.py --aspect performance --score 8 --summary "No major regressions" --recommendation approve-with-caveats --reviewed-scope src/api/orders.ts
-python3 .agents/scripts/record_review.py --aspect security --score 9 --summary "Security posture acceptable" --recommendation approve --reviewed-scope src/api/orders.ts
-```
-
----
-
-## Run Functional Checks
-
-After review passes, run the `functional-checker` subagent. If it returns structured JSON, record it with:
+6. **Functional check + PR-ready**:
 
 ```bash
 python3 .agents/scripts/record_test_from_json.py --kind functional --input /tmp/functional-test.json
-```
-
-Functional checks are required before PR-ready.
-
----
-
-## Mark PR Ready
-
-```bash
 python3 .agents/scripts/pr_ready.py
 ```
 
-If decomposition, testing, review, or verification artifacts are missing, it exits non-zero.
+`pr_ready.py` exits non-zero if any required artifact is missing. Merge stays
+manual.
+
+---
+
+## Keeping your repo honest
+
+CI runs these on every PR (and you can run them any time):
+
+```bash
+python3 .agents/scripts/check_dual_runtime.py   # reference-not-duplicate contract
+python3 .agents/scripts/check_agents_hygiene.py # AGENTS.md size + links
+python3 .agents/scripts/check_factory_scaffold.py
+```
+
+If codex-plugin-cc is unavailable, see `docs/degraded-mode.md` — same phase
+prompts, same artifacts, direct `codex exec`.

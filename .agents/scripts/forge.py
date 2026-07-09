@@ -170,9 +170,97 @@ def cmd_decision_new(args: argparse.Namespace) -> None:
     )
 
 
+def _check(name: str, ok: bool, detail: str, fix: str, required: bool = True) -> dict:
+    return {"name": name, "ok": ok, "detail": detail, "fix": fix, "required": required}
+
+
+def _run_quiet(cmd: list[str]) -> tuple[int, str]:
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        return proc.returncode, (proc.stdout + proc.stderr).strip()
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return 1, str(exc)
+
+
+def cmd_doctor(args: argparse.Namespace) -> None:
+    home = Path.home()
+    checks: list[dict] = []
+
+    def which(binary: str) -> str | None:
+        return shutil.which(binary)
+
+    # Core toolchain
+    checks.append(_check(
+        "git", which("git") is not None, which("git") or "not on PATH",
+        "https://git-scm.com — or `xcode-select --install` on macOS"))
+    node = which("node")
+    node_ok, node_ver = (False, "not on PATH")
+    if node:
+        code, out = _run_quiet([node, "--version"])
+        node_ver = out
+        node_ok = code == 0 and out.lstrip("v").split(".")[0].isdigit() and int(out.lstrip("v").split(".")[0]) >= 20
+    checks.append(_check("node >= 20", node_ok, node_ver, "install Node 20+ (https://nodejs.org or `brew install node`)"))
+    checks.append(_check(
+        "pnpm", which("pnpm") is not None, which("pnpm") or "not on PATH",
+        "`npm install -g pnpm` (needed once the nx workspace exists)", required=False))
+    checks.append(_check(
+        "docker", which("docker") is not None, which("docker") or "not on PATH",
+        "Docker Desktop (needed once the nx workspace exists)", required=False))
+
+    # Codex — the execution plane
+    codex = which("codex")
+    if codex:
+        code, out = _run_quiet([codex, "login", "status"])
+        logged_in = code == 0 and "not logged in" not in out.lower()
+        checks.append(_check("codex CLI + login", logged_in, out.splitlines()[-1] if out else "unknown",
+                             "`codex login` (ChatGPT subscription or API key)"))
+    else:
+        checks.append(_check("codex CLI + login", False, "not on PATH",
+                             "`npm install -g @openai/codex` then `codex login`"))
+
+    # Claude Code — the coordination plane
+    checks.append(_check(
+        "claude CLI", which("claude") is not None, which("claude") or "not on PATH",
+        "https://claude.ai/code — install Claude Code"))
+    plugin = home / ".claude" / "plugins" / "cache" / "openai-codex" / "codex"
+    checks.append(_check(
+        "codex-plugin-cc", plugin.is_dir(), str(plugin) if plugin.is_dir() else "not installed",
+        "in Claude Code run: `/plugin marketplace add openai/codex-plugin-cc` then "
+        "`/plugin install codex@openai-codex` (leave the review gate disabled)"))
+
+    # Skills
+    gstack = home / ".claude" / "skills" / "gstack"
+    checks.append(_check(
+        "gstack skills", gstack.is_dir(), str(gstack) if gstack.is_dir() else "not installed",
+        "`git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack && ~/.claude/skills/gstack/setup` "
+        "(needed for /office-hours discovery)"))
+    autoreview = home / ".codex" / "skills" / "autoreview"
+    checks.append(_check(
+        "autoreview skill", autoreview.is_dir(), str(autoreview) if autoreview.is_dir() else "not installed",
+        "clone https://github.com/openclaw/agent-skills and run scripts/install-skills "
+        "(escalation-tier review; see harness.yaml)", required=False))
+
+    width = max(len(c["name"]) for c in checks)
+    failures = 0
+    for c in checks:
+        mark = "OK " if c["ok"] else ("MISS" if c["required"] else "opt ")
+        print(f"[{mark}] {c['name']:<{width}}  {c['detail']}")
+        if not c["ok"]:
+            print(f"       fix: {c['fix']}")
+            if c["required"]:
+                failures += 1
+    if failures:
+        print(f"\nforge doctor: {failures} required tool(s) missing.")
+        raise SystemExit(1)
+    print("\nforge doctor: ready. Next: forge.py init --name <project> --target <dir>")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="forge", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
+
+    p_doc = sub.add_parser("doctor", help="check machine prerequisites for the harness")
+    p_doc.set_defaults(func=cmd_doctor)
 
     p_init = sub.add_parser("init", help="scaffold a new client repo from this harness")
     p_init.add_argument("--name", required=True)
