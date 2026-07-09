@@ -20,7 +20,10 @@ jobs:
       - name: Collect gardening state
         id: state
         run: |
-          python3 .agents/scripts/forge.py context scan --check || true
+          # Real scan into the disposable CI workspace so unscanned/changed
+          # inbox files count as pending (scan --check detects drift but
+          # does not register it; list would then undercount).
+          python3 .agents/scripts/forge.py context scan >/dev/null
           PENDING=$(python3 .agents/scripts/forge.py context list --pending | wc -l | tr -d ' ')
           PROPOSED=$(ls .agents/skills/proposed/*.md 2>/dev/null | wc -l | tr -d ' ')
           echo "pending=$PENDING" >> "$GITHUB_OUTPUT"

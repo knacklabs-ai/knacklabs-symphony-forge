@@ -1,0 +1,48 @@
+---
+name: caw-new-project
+description: >-
+  Bootstrap a new CAW client project from the Symphony Forge harness:
+  update the harness clone, verify machine prerequisites (doctor), scaffold
+  the repo (forge init), and hand off to the project's /forge skill. Invoke
+  when the user says "new CAW project", "set up a client project", "start a
+  project with the harness", "scaffold <name>", or "/caw-new-project".
+---
+
+# New CAW Project
+
+You are bootstrapping a client repo from the harness. Everything below is
+runnable by you — the user should only have to answer questions.
+
+## Steps
+
+1. **Locate or fetch the harness.**
+   ```bash
+   HARNESS=~/Workdir/symphony-forge
+   [ -d "$HARNESS/.git" ] && git -C "$HARNESS" pull --ff-only \
+     || git clone git@github.com:vrknetha/symphony-forge.git "$HARNESS"
+   ```
+
+2. **Doctor.** Run `python3 "$HARNESS/.agents/scripts/forge.py" doctor`.
+   Fix what you can yourself (installs the user approves); anything needing
+   the user (logins, Claude plugins via `/plugin`) — give them the exact
+   command doctor printed and wait. Do not proceed with required tools missing.
+
+3. **Ask** (one question): project name, and target directory if not
+   `~/Workdir/<name>`.
+
+4. **Scaffold.**
+   ```bash
+   python3 "$HARNESS/.agents/scripts/forge.py" init --name <name> --target <dir>
+   ```
+   Never pass `--force` without explicit user confirmation — it overwrites.
+
+5. **Hand off.** `cd <dir>`, run `python3 .agents/scripts/forge.py next`,
+   relay its output, and tell the user: from here, this repo's own `/forge`
+   skill (and `forge.py next`) drives every phase — discovery first.
+
+## Rules
+
+- The generated repo is the system of record; the harness clone is only the
+  template source. Never do project work inside the harness clone.
+- If doctor and init both pass but `next` errors, report verbatim — do not
+  improvise around a broken scaffold.

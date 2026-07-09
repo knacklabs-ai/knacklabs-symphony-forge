@@ -4,16 +4,17 @@ CAW's harness for building client applications with **Claude Code coordination**
 
 ## Quick Start (devs)
 
+One-time machine setup, then everything is conversation:
+
 ```bash
-git clone git@github.com:vrknetha/symphony-forge.git ~/Workdir/symphony-forge
-cd ~/Workdir/symphony-forge
-python3 .agents/scripts/forge.py doctor                       # check your machine, fix what it lists
-python3 .agents/scripts/forge.py init --name my-app --target ~/Workdir/my-app
-cd ~/Workdir/my-app
-python3 .agents/scripts/forge.py next                         # tells you exactly what to do, always
+git clone git@github.com:vrknetha/symphony-forge.git ~/Workdir/symphony-forge && ~/Workdir/symphony-forge/setup
 ```
 
-**Lost at any point, in any phase: run `forge.py next`** (or invoke the `/forge` skill in Claude Code — it runs it for you and routes to the right tool). It reads the run state, context ledger, plans, and artifacts, and prints the current phase plus the exact next commands. Full walkthrough: [Getting Started](docs/getting-started.md).
+Then, in Claude Code:
+
+> **"Set up a new CAW project called my-app"**
+
+The `caw-new-project` skill updates the harness, runs `doctor` (and fixes what it can), scaffolds the repo with `forge init`, and hands you to the project's own `/forge` skill. From then on, **ask "what now?" in any phase** — `/forge` runs the deterministic `forge.py next` engine and routes you (same answer for Codex sessions via `AGENTS.md`). Manual equivalents for every step: [Getting Started](docs/getting-started.md).
 
 ## The Lifecycle
 

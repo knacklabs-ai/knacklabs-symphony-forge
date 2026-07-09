@@ -4,6 +4,11 @@ Symphony Forge is a dual-runtime harness plus doc-driven factory for building
 agent-ready software. Claude Code coordinates; Codex executes. This page is the
 one blessed path from empty directory to first feature PR.
 
+**Agent-first shortcut:** after step 1's clone, run `./setup` once — it
+installs the `caw-new-project` skill, and steps 2–3 become one sentence to
+Claude Code: *"Set up a new CAW project called my-app."* The manual commands
+below are the equivalents (and what the agent runs for you).
+
 ---
 
 ## 1. Get the harness (once per machine)
@@ -11,6 +16,7 @@ one blessed path from empty directory to first feature PR.
 ```bash
 git clone git@github.com:vrknetha/symphony-forge.git ~/Workdir/symphony-forge
 cd ~/Workdir/symphony-forge
+./setup
 ```
 
 ## 2. Check your machine
