@@ -173,14 +173,33 @@ def cmd_decision_new(args: argparse.Namespace) -> None:
     )
 
 
+def _pending_context(base: Path) -> list[str]:
+    """Pending = ledgered-pending PLUS unscanned/changed inbox files on disk.
+
+    The single source of truth for 'is there unharvested context' — used by
+    the plan-approval gate and the phase engine so they can never disagree.
+    """
+    context_dir, ledger_path = _context_paths(base)
+    ledger = load_json(ledger_path, default={"files": {}})
+    pending = [
+        rel for rel, e in ledger.get("files", {}).items() if e.get("status") == "pending"
+    ]
+    if context_dir.is_dir():
+        for f in _context_files(context_dir):
+            rel = str(f.relative_to(context_dir))
+            entry = ledger.get("files", {}).get(rel)
+            if entry is None or (
+                entry.get("status") != "pending" and entry.get("sha256") != _sha256(f)
+            ):
+                pending.append(f"{rel} (unscanned)")
+    return pending
+
+
 def cmd_next(args: argparse.Namespace) -> None:
     base = Path(args.repo).resolve() if args.repo else repo_root()
     state = load_json(run_state_path(base), default={})
     factory = base / ".factory"
-    ledger = load_json(base / "docs" / "context" / "ledger.json", default={"files": {}})
-    pending_ctx = sum(
-        1 for e in ledger.get("files", {}).values() if e.get("status") == "pending"
-    )
+    pending_ctx = len(_pending_context(base))
     steps: list[str] = []
 
     def phase(label: str) -> None:
@@ -358,26 +377,13 @@ def cmd_context_mark(args: argparse.Namespace) -> None:
 def cmd_plan_save(args: argparse.Namespace) -> None:
     base = Path(args.repo).resolve() if args.repo else repo_root()
     state = load_json(run_state_path(base), default={})
-    if state and not state.get("client_signoff"):
+    if not state or not state.get("client_signoff"):
         fail(
-            "plan approval requires client sign-off first. Get docs/decisions/"
-            "NNNN-client-signoff.md accepted, run record_signoff.py, then save the plan."
+            "plan approval requires an initialized run with client sign-off. Run "
+            "intake, get docs/decisions/NNNN-client-signoff.md accepted, run "
+            "record_signoff.py, then save the plan."
         )
-    context_dir, ledger_path = _context_paths(base)
-    ledger = load_json(ledger_path, default={"files": {}})
-    pending = [
-        rel for rel, e in ledger.get("files", {}).items() if e.get("status") == "pending"
-    ]
-    # Untracked/changed inbox files are pending too — the ledger only knows
-    # what `context scan` has seen.
-    if context_dir.is_dir():
-        for f in _context_files(context_dir):
-            rel = str(f.relative_to(context_dir))
-            entry = ledger.get("files", {}).get(rel)
-            if entry is None or (
-                entry.get("status") != "pending" and entry.get("sha256") != _sha256(f)
-            ):
-                pending.append(f"{rel} (unscanned)")
+    pending = _pending_context(base)
     if pending:
         fail(
             f"{len(pending)} docs/context/ file(s) are unharvested: {', '.join(pending[:5])}"
