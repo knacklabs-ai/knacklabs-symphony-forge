@@ -273,10 +273,20 @@ def check_thin_adapter(root: Path) -> None:
     claude = root / ".claude"
     if claude.is_dir():
         for f in claude.rglob("*"):
-            if f.is_file() and f.name not in ALLOWED_CLAUDE:
+            if not f.is_file():
+                continue
+            rel = f.relative_to(claude)
+            # .claude/skills/<name>/SKILL.md is Claude's skill registration
+            # format (like .codex/agents/*.toml); duplication checks still
+            # keep skills honest about referencing canon.
+            is_skill = (
+                len(rel.parts) == 3 and rel.parts[0] == "skills" and rel.parts[2] == "SKILL.md"
+            )
+            if f.name not in ALLOWED_CLAUDE and not is_skill:
                 violation(
                     f"{f.relative_to(root)} is not an adapter file. .claude/ may contain only "
-                    f"{sorted(ALLOWED_CLAUDE)}; move substance to .agents/ or docs/."
+                    f"{sorted(ALLOWED_CLAUDE)} and skills/<name>/SKILL.md; move substance "
+                    "to .agents/ or docs/."
                 )
         claude_md = claude / "CLAUDE.md"
         if claude_md.exists():

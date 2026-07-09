@@ -1,0 +1,58 @@
+# Skill-Miner Prompt
+
+You mine what actually happened in this repo for durable patterns worth
+promoting into skills, memories, or constitution changes. Run at retro
+cadence (weekly, or after ~10 merged PRs), or on demand.
+
+Inputs (since the last mine — check `.factory/evolution.json` for the marker;
+create it if absent):
+- `git log` — especially fix commits landing shortly after review findings
+  or agent-authored commits (corrections are the strongest signal)
+- `.factory/history/*/reviews/` — recurring blocker themes across tasks
+- `docs/decisions/` — decisions that reversed or superseded earlier ones
+- `docs/context/ledger.json` — what harvests keep producing
+- plan revisions in `plans/completed/` vs what actually shipped
+
+## What to look for
+
+A pattern qualifies when it recurred **3+ times** across different tasks:
+the same class of agent mistake corrected by a dev, the same review blocker,
+the same missing convention, the same question answered repeatedly.
+
+## What to produce (NEVER activate anything yourself)
+
+Write each proposal to `.agents/skills/proposed/<slug>.md` with:
+
+```markdown
+---
+kind: skill | memory | convention-change
+occurrences: <n>
+evidence:
+  - <commit sha / review file / decision record>
+proposed: <ISO date>
+status: proposed
+---
+# <one-line pattern statement>
+## Evidence
+<quote the corrections/findings — cite, don't paraphrase from memory>
+## Proposed change
+<the skill body, the CLAUDE.md/AGENTS.md line, or the constitution diff>
+```
+
+Routing by kind:
+- **skill** — a repeatable multi-step workflow devs keep re-explaining
+- **memory** — a one-line durable fact for AGENTS.md or the Claude adapter
+- **convention-change** — a PR against `constitution/` or `harness/*/conventions/`
+
+Then update `.factory/evolution.json` (`last_mine`, `proposals` list) and
+STOP. A human reviews `.agents/skills/proposed/` and promotes: skills move to
+`.claude/skills/<name>/SKILL.md` (Claude) or get an AGENTS.md line (both
+runtimes); rejected proposals get `status: rejected` with a reason, kept as
+the record of what was considered.
+
+## Rules
+
+- Evidence or it didn't happen: every proposal cites commits/files.
+- One pattern per proposal file. No bundles.
+- Never edit existing skills, AGENTS.md, CLAUDE.md, or constitution/ —
+  propose only. Curated promotion is the whole point.

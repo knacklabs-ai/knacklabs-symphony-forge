@@ -41,6 +41,18 @@ plans must not be written over unharvested context. Broader doc freshness
 follows `harness/nestjs-react/conventions/doc-gardening.md` (gardening agent —
 convention today, not yet automated).
 
+## Evolution Loop
+
+Dev corrections are the harness's training data. At retro cadence, an agent
+following `.agents/prompts/skill-miner.md` mines recurring patterns (3+
+occurrences: fix-after-review commits, repeated blockers, superseded
+decisions) into PROPOSALS under `.agents/skills/proposed/` — skills, memory
+lines, or constitution changes, each with cited evidence. Humans promote or
+reject; nothing self-activates. The daily `gardener` workflow opens a
+GitHub issue whenever unharvested context or unreviewed proposals exist, and
+the SessionStart hook surfaces the same counts at the start of every agent
+session. The `/forge` Claude skill routes all of this.
+
 ## Gating Model
 
 Gates are deterministic and run at phase transitions (`update_run.py`, `record_*` scripts, `pr_ready.py`) and on Bash commands (`pre_tool_use.py`) — never on prompt keywords or turn ends. Editing files before plan approval is deliberately not hard-blocked: unapproved work cannot pass verify, testing, review, or `pr_ready.py`, which is where the contract is enforced. This replaces the earlier prompt-keyword and stop-hook guards, which had false positives in both directions and never actually covered non-Bash edits.
