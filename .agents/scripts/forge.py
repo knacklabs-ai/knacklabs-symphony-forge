@@ -356,6 +356,11 @@ def cmd_context_mark(args: argparse.Namespace) -> None:
 def cmd_plan_save(args: argparse.Namespace) -> None:
     base = Path(args.repo).resolve() if args.repo else repo_root()
     state = load_json(run_state_path(base), default={})
+    if state and not state.get("client_signoff"):
+        fail(
+            "plan approval requires client sign-off first. Get docs/decisions/"
+            "NNNN-client-signoff.md accepted, run record_signoff.py, then save the plan."
+        )
     issue = args.issue or state.get("issue_key")
     if not issue:
         fail("no --issue given and no issue_key in .factory/run.json (run intake first)")

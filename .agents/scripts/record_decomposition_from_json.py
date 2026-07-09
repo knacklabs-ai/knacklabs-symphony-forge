@@ -21,8 +21,13 @@ else:
     payload = json.loads(raw)
 
 root = repo_root()
-dump_json(decomposition_state_path(root), payload)
 state = load_json(run_state_path(root), default={})
+if state and not state.get("client_signoff"):
+    raise SystemExit(
+        "Recording decomposition requires client sign-off first. Get "
+        "docs/decisions/NNNN-client-signoff.md accepted, then run record_signoff.py."
+    )
+dump_json(decomposition_state_path(root), payload)
 if state:
     state["decomposition_status"] = "recorded"
     state["updated_at"] = now_iso()

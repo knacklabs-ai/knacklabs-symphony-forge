@@ -24,6 +24,10 @@ missing: list[str] = []
 if not run_state:
     missing.append(".factory/run.json")
 else:
+    if not run_state.get("client_signoff"):
+        missing.append(
+            "client sign-off (accepted docs/decisions/NNNN-client-signoff.md + record_signoff.py)"
+        )
     if run_state.get("plan_status") != "approved":
         missing.append("approved plan status in .factory/run.json")
     if run_state.get("decomposition_status") != "recorded":
