@@ -519,32 +519,47 @@ def cmd_doctor(args: argparse.Namespace) -> None:
         "Docker Desktop (needed once the nx workspace exists)", required=False))
 
     # Codex — the execution plane
+    if not which("codex") and args.fix and which("npm"):
+        print("[fix ] installing @openai/codex ...")
+        _run_quiet(["npm", "install", "-g", "@openai/codex"])
     codex = which("codex")
     if codex:
         code, out = _run_quiet([codex, "login", "status"])
         logged_in = code == 0 and "not logged in" not in out.lower()
         checks.append(_check("codex CLI + login", logged_in, out.splitlines()[-1] if out else "unknown",
-                             "`codex login` (ChatGPT subscription or API key)"))
+                             "`codex login` (ChatGPT subscription or API key — login is always manual)"))
     else:
         checks.append(_check("codex CLI + login", False, "not on PATH",
-                             "`npm install -g @openai/codex` then `codex login`"))
+                             "`npm install -g @openai/codex` then `codex login` — or rerun with --fix"))
 
     # Claude Code — the coordination plane
+    claude_bin = which("claude")
     checks.append(_check(
-        "claude CLI", which("claude") is not None, which("claude") or "not on PATH",
+        "claude CLI", claude_bin is not None, claude_bin or "not on PATH",
         "https://claude.ai/code — install Claude Code"))
+
+    def _install_claude_plugin(marketplace_url: str, plugin_ref: str) -> None:
+        _run_quiet([claude_bin, "plugin", "marketplace", "add", marketplace_url])
+        _run_quiet([claude_bin, "plugin", "install", plugin_ref])
+
     plugin = home / ".claude" / "plugins" / "cache" / "openai-codex" / "codex"
+    if not plugin.is_dir() and args.fix and claude_bin:
+        print("[fix ] installing codex-plugin-cc ...")
+        _install_claude_plugin("https://github.com/openai/codex-plugin-cc", "codex@openai-codex")
     checks.append(_check(
         "codex-plugin-cc", plugin.is_dir(), str(plugin) if plugin.is_dir() else "not installed",
-        "in Claude Code run: `/plugin marketplace add openai/codex-plugin-cc` then "
-        "`/plugin install codex@openai-codex` (leave the review gate disabled)"))
+        "`claude plugin marketplace add https://github.com/openai/codex-plugin-cc && "
+        "claude plugin install codex@openai-codex` — or rerun with --fix "
+        "(leave the review gate disabled)"))
 
     # Skills
     gstack = home / ".claude" / "skills" / "gstack"
     if not gstack.is_dir() and args.fix:
         print("[fix ] installing gstack ...")
-        _run_quiet(["git", "clone", "--depth", "1",
-                    "https://github.com/garrytan/gstack.git", str(gstack)])
+        code, _ = _run_quiet(["git", "clone", "--depth", "1",
+                              "https://github.com/garrytan/gstack.git", str(gstack)])
+        if code == 0 and (gstack / "setup").exists():
+            _run_quiet([str(gstack / "setup")])  # best-effort; skills work from clone
     checks.append(_check(
         "gstack skills", gstack.is_dir(), str(gstack) if gstack.is_dir() else "not installed",
         "`git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack && ~/.claude/skills/gstack/setup` "
@@ -564,13 +579,20 @@ def cmd_doctor(args: argparse.Namespace) -> None:
         "clone https://github.com/openclaw/agent-skills and copy skills/autoreview to "
         "~/.codex/skills/ — or rerun with --fix (escalation-tier review; see harness.yaml)",
         required=False))
-    ponytail = home / ".claude" / "plugins" / "cache"
-    ponytail_ok = ponytail.is_dir() and any(ponytail.glob("*ponytail*"))
+    ponytail_cache = home / ".claude" / "plugins" / "cache"
+
+    def _ponytail_ok() -> bool:
+        return ponytail_cache.is_dir() and any(ponytail_cache.glob("*ponytail*"))
+
+    if not _ponytail_ok() and args.fix and claude_bin:
+        print("[fix ] installing ponytail ...")
+        _install_claude_plugin("https://github.com/DietrichGebert/ponytail", "ponytail@ponytail")
     checks.append(_check(
-        "ponytail plugin", ponytail_ok,
-        "installed" if ponytail_ok else "not installed",
-        "in Claude Code run: `/plugin marketplace add DietrichGebert/ponytail` then "
-        "`/plugin install ponytail@ponytail` (prototype phase 0b only — see harness.yaml)",
+        "ponytail plugin", _ponytail_ok(),
+        "installed" if _ponytail_ok() else "not installed",
+        "`claude plugin marketplace add https://github.com/DietrichGebert/ponytail && "
+        "claude plugin install ponytail@ponytail` — or rerun with --fix "
+        "(prototype phase 0b only — see harness.yaml)",
         required=False))
 
     width = max(len(c["name"]) for c in checks)
