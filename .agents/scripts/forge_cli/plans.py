@@ -44,7 +44,7 @@ def cmd_save(args: argparse.Namespace) -> None:
     dest.write_text(header + source.read_text())
     if state:
         state["plan_status"] = "approved"
-        state["plan_file"] = str(dest.relative_to(base))
+        state["plan_file"] = dest.relative_to(base).as_posix()
         state["updated_at"] = now_iso()
         dump_json(run_state_path(base), state)
     print(f"Plan saved to {dest.relative_to(base)} (plan_status: approved)")

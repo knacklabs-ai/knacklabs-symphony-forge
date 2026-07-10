@@ -53,7 +53,7 @@ def main() -> int:
         return 1
     state = load_json(run_state_path(root), default={})
     state["client_signoff"] = True
-    state["client_signoff_record"] = str(record.relative_to(root))
+    state["client_signoff_record"] = record.relative_to(root).as_posix()
     state["client_signoff_at"] = now_iso()
     dump_json(run_state_path(root), state)
     print(f"client_signoff recorded from {record.relative_to(root)}")
