@@ -28,6 +28,10 @@ def run(repo: Path, script: str, *args: str, stdin: str | None = None):
 
 GIT_ID = ["-c", "user.email=test@caw.dev", "-c", "user.name=Gate Tests"]
 
+# Minimal payload satisfying .agents/schemas/decomposition.json
+DECOMP = {"status": "recorded", "generated_by": "docs-decomposer",
+          "user_facing": True, "tasks": []}
+
 
 def git(repo: Path, *args: str) -> str:
     proc = subprocess.run(["git", *GIT_ID, *args], cwd=repo,
@@ -81,17 +85,19 @@ def write_passing_artifacts(repo: Path, commit: str | None = None) -> None:
     sha = commit or head(repo)
     f = repo / ".factory"
     (f / "decomposition.json").write_text(
-        json.dumps({"status": "recorded", "commit": sha}))
+        json.dumps({**DECOMP, "commit": sha}))
     (f / "verify.json").write_text(json.dumps({"ok": True, "commit": sha}))
     (f / "tests.json").write_text(json.dumps({
-        "automated": {"status": "passed"},
-        "functional": {"status": "passed", "score": 9},
+        "automated": {"status": "passed", "generated_by": "implementer"},
+        "functional": {"status": "passed", "score": 9,
+                       "generated_by": "functional-checker"},
         "commit": sha,
     }))
     (f / "reviews").mkdir(exist_ok=True)
     for aspect in ("quality", "performance", "security"):
         (f / "reviews" / f"{aspect}.json").write_text(
-            json.dumps({"score": 9, "blocking_findings": [], "commit": sha})
+            json.dumps({"score": 9, "blocking_findings": [],
+                        "generated_by": "autoreview", "commit": sha})
         )
 
 
@@ -109,7 +115,7 @@ def test_full_lifecycle_and_archive(repo, tmp_path):
     code, out = save_plan(repo, tmp_path)
     assert code == 0, out
     code, out = run(repo, "record_decomposition_from_json.py",
-                    stdin=json.dumps({"status": "recorded"}))
+                    stdin=json.dumps(DECOMP))
     assert code == 0, out
     write_passing_artifacts(repo)
     code, out = run(repo, "update_run.py", "--decomposition-status", "recorded")
@@ -150,7 +156,7 @@ def test_plan_save_refused_without_run_state(repo, tmp_path):
 def test_decomposition_refused_before_signoff(repo):
     intake(repo)
     code, out = run(repo, "record_decomposition_from_json.py",
-                    stdin=json.dumps({"status": "recorded"}))
+                    stdin=json.dumps(DECOMP))
     assert code != 0 and "sign-off" in out
 
 
@@ -158,7 +164,7 @@ def test_decomposition_refused_before_approved_plan(repo):
     sign_off(repo)
     intake(repo)
     code, out = run(repo, "record_decomposition_from_json.py",
-                    stdin=json.dumps({"status": "recorded"}))
+                    stdin=json.dumps(DECOMP))
     assert code != 0 and "approved" in out  # autoreview r10
 
 
@@ -306,7 +312,7 @@ def test_intake_preserves_signoff_and_refuses_to_clobber_evidence(repo, tmp_path
     intake(repo)
     save_plan(repo, tmp_path)
     code, _ = run(repo, "record_decomposition_from_json.py",
-                  stdin=json.dumps({"status": "recorded"}))
+                  stdin=json.dumps(DECOMP))
     assert code == 0
     # Mid-task second intake must refuse (autoreview r3)
     code, out = intake(repo, "ENG-2", "Refunds")
@@ -344,7 +350,7 @@ def test_phase_implementing_requires_approved_saved_plan(repo, tmp_path):
                     "--decomposition-status", "recorded")
     assert code != 0 and "decomposition" in out
     code, _ = run(repo, "record_decomposition_from_json.py",
-                  stdin=json.dumps({"status": "recorded"}))
+                  stdin=json.dumps(DECOMP))
     assert code == 0
     code, out = run(repo, "update_run.py", "--phase", "implementing")
     assert code == 0, out
@@ -353,7 +359,7 @@ def test_phase_implementing_requires_approved_saved_plan(repo, tmp_path):
 def test_decomposition_refused_without_run_state(repo):
     (repo / ".factory" / "run.json").unlink()
     code, out = run(repo, "record_decomposition_from_json.py",
-                    stdin=json.dumps({"status": "recorded"}))
+                    stdin=json.dumps(DECOMP))
     assert code != 0 and "run.json" in out  # autoreview r11
     assert not (repo / ".factory" / "decomposition.json").exists()
 
@@ -411,7 +417,7 @@ def test_pr_ready_accepts_decomposition_recorded_before_implementation(repo, tmp
     intake(repo)
     save_plan(repo, tmp_path)
     code, _ = run(repo, "record_decomposition_from_json.py",
-                  stdin=json.dumps({"status": "recorded"}))
+                  stdin=json.dumps(DECOMP))
     assert code == 0
     git(repo, "add", "-A")
     git(repo, "commit", "-q", "-m", "plan + decomposition")
@@ -518,3 +524,140 @@ def test_dual_runtime_linter_clean_on_scaffold_and_catches_phantom_ref(repo):
     )
     code, out = run(repo, "check_dual_runtime.py", str(repo))
     assert code != 0 and "phantom" in out
+
+
+# ------------------------------------------------------------------- roadmap
+
+ROADMAP = {"generated_by": "human", "items": [
+    {"key": "ENG-1", "title": "Invoices", "epic": "billing"},
+    {"key": "ENG-2", "title": "Payments", "epic": "billing"},
+]}
+
+
+def import_roadmap(repo: Path, tmp_path: Path, payload=None) -> tuple[int, str]:
+    src = tmp_path / "roadmap-input.json"
+    src.write_text(json.dumps(payload if payload is not None else ROADMAP))
+    return run(repo, "forge.py", "roadmap", "import", "--input", str(src))
+
+
+def roadmap_items(repo: Path) -> dict:
+    data = json.loads((repo / "plans" / "roadmap.json").read_text())
+    return {item["key"]: item for item in data["items"]}
+
+
+def test_roadmap_lifecycle(repo, tmp_path):
+    sign_off(repo)
+    code, out = import_roadmap(repo, tmp_path)
+    assert code == 0 and "2 added" in out, out
+    # forge next suggests the first pending item with the exact intake command
+    code, out = run(repo, "forge.py", "next")
+    assert code == 0 and "ENG-1" in out and "roadmap" in out.lower()
+    # intake activates the matching item
+    code, out = intake(repo)
+    assert code == 0 and "marked active" in out
+    assert roadmap_items(repo)["ENG-1"]["status"] == "active"
+    # drive to pr-ready: item completed with a history link
+    save_plan(repo, tmp_path)
+    run(repo, "record_decomposition_from_json.py", stdin=json.dumps(DECOMP))
+    write_passing_artifacts(repo)
+    run(repo, "update_run.py", "--decomposition-status", "recorded")
+    code, out = run(repo, "pr_ready.py")
+    assert code == 0, out
+    items = roadmap_items(repo)
+    assert items["ENG-1"]["status"] == "done"
+    assert items["ENG-1"]["history"] == ".factory/history/ENG-1/"
+    assert items["ENG-2"]["status"] == "pending"
+    # next now suggests ENG-2 after the archived task
+    code, out = run(repo, "intake.py", "--issue", "ENG-2", "--title", "Payments")
+    assert code == 0
+    assert roadmap_items(repo)["ENG-2"]["status"] == "active"
+
+
+def test_roadmap_reimport_preserves_lifecycle_and_kept_items(repo, tmp_path):
+    sign_off(repo)
+    import_roadmap(repo, tmp_path)
+    intake(repo)  # ENG-1 -> active
+    # Refined roadmap: retitles ENG-1, drops ENG-2, adds ENG-3
+    code, out = import_roadmap(repo, tmp_path, {"generated_by": "human", "items": [
+        {"key": "ENG-1", "title": "Invoices v2", "epic": "billing"},
+        {"key": "ENG-3", "title": "Reports", "epic": "insights"},
+    ]})
+    assert code == 0 and "kept" in out, out
+    items = roadmap_items(repo)
+    assert items["ENG-1"]["status"] == "active"  # lifecycle survives re-import
+    assert items["ENG-1"]["title"] == "Invoices v2"
+    assert items["ENG-3"]["status"] == "pending"
+    assert "ENG-2" in items  # absent from input, kept — removal is a PR edit
+
+
+def test_roadmap_import_and_add_validation(repo, tmp_path):
+    code, out = import_roadmap(repo, tmp_path, {"items": [{"key": "A", "title": "x"}]})
+    assert code != 0 and "generated_by" in out  # schema: unattributed import refused
+    code, out = import_roadmap(repo, tmp_path,
+                               {"generated_by": "human", "items": [{"key": "A"}]})
+    assert code != 0 and "title" in out
+    code, out = import_roadmap(repo, tmp_path, {"generated_by": "human", "items": [
+        {"key": "A", "title": "x"}, {"key": "A", "title": "y"},
+    ]})
+    assert code != 0 and "duplicate" in out
+    code, out = run(repo, "forge.py", "roadmap", "add", "ENG-9", "Reports")
+    assert code == 0, out
+    code, out = run(repo, "forge.py", "roadmap", "add", "ENG-9", "Reports")
+    assert code != 0 and "already" in out
+
+
+# ------------------------------------------------- determinism contract (schemas)
+
+def test_recorders_refuse_nonconforming_payloads(repo, tmp_path):
+    sign_off(repo)
+    intake(repo)
+    save_plan(repo, tmp_path)
+    # decomposition: missing required field
+    code, out = run(repo, "record_decomposition_from_json.py",
+                    stdin=json.dumps({"generated_by": "docs-decomposer", "tasks": []}))
+    assert code != 0 and "user_facing" in out
+    # decomposition: unpinned generator, message routes to the harness PR
+    code, out = run(repo, "record_decomposition_from_json.py",
+                    stdin=json.dumps({"generated_by": "ponytail",
+                                      "user_facing": True, "tasks": []}))
+    assert code != 0 and "not pinned" in out and "harness PR" in out
+    # valid decomposition opens the downstream gates
+    code, out = run(repo, "record_decomposition_from_json.py", stdin=json.dumps(DECOMP))
+    assert code == 0, out
+    # review: legacy 'blocking' alias no longer accepted as blocking_findings
+    code, out = run(repo, "record_review_from_json.py", "--aspect", "quality",
+                    stdin=json.dumps({"generated_by": "autoreview", "score": 9,
+                                      "summary": "ok", "blocking": []}))
+    assert code != 0 and "blocking_findings" in out
+    # review: wrong type
+    code, out = run(repo, "record_review_from_json.py", "--aspect", "quality",
+                    stdin=json.dumps({"generated_by": "autoreview", "score": "9",
+                                      "summary": "ok", "blocking_findings": []}))
+    assert code != 0 and "'score' must be int" in out
+    # review: unpinned generator (the old subagent name is retired)
+    code, out = run(repo, "record_review_from_json.py", "--aspect", "quality",
+                    stdin=json.dumps({"generated_by": "quality-reviewer", "score": 9,
+                                      "summary": "ok", "blocking_findings": []}))
+    assert code != 0 and "not pinned" in out
+    # happy path: recorded, attested, no legacy keys written
+    code, out = run(repo, "record_review_from_json.py", "--aspect", "quality",
+                    stdin=json.dumps({"generated_by": "autoreview", "score": 9,
+                                      "summary": "ok", "blocking_findings": []}))
+    assert code == 0, out
+    recorded = json.loads((repo / ".factory" / "reviews" / "quality.json").read_text())
+    assert recorded["generated_by"] == "autoreview" and "blocking" not in recorded
+    # testing artifact via the recorder
+    code, out = run(repo, "record_test_from_json.py", "--kind", "automated",
+                    stdin=json.dumps({"generated_by": "implementer", "status": "passed",
+                                      "summary": "unit suite", "blocking_findings": [],
+                                      "commands_run": ["pytest"]}))
+    assert code == 0, out
+
+
+def test_linter_catches_schema_allowlist_divergence(repo):
+    schema = repo / ".agents" / "schemas" / "review.json"
+    data = json.loads(schema.read_text())
+    data["generated_by"].append("rogue-tool")
+    schema.write_text(json.dumps(data))
+    code, out = run(repo, "check_dual_runtime.py", str(repo))
+    assert code != 0 and "rogue-tool" in out

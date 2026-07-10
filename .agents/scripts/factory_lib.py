@@ -97,6 +97,50 @@ def gate(
     return state
 
 
+SCHEMA_TYPES = {"str": str, "int": int, "bool": bool, "list": list, "dict": dict}
+
+
+def schema_path(root: Path, name: str) -> Path:
+    return root / ".agents" / "schemas" / f"{name}.json"
+
+
+def validate_payload(root: Path, name: str, payload: dict) -> None:
+    """The determinism contract's front door: refuse any externally-authored
+    artifact that does not match its .agents/schemas/ spec, including a
+    generated_by value outside the pinned allowlist. Extra keys are allowed."""
+    path = schema_path(root, name)
+    schema = json.loads(path.read_text())
+    problems: list[str] = []
+
+    def check(field: str, kind: str, value: Any) -> None:
+        ok = isinstance(value, SCHEMA_TYPES[kind])
+        if kind != "bool" and isinstance(value, bool):
+            ok = False
+        if not ok:
+            problems.append(f"'{field}' must be {kind}")
+
+    for field, kind in schema.get("required", {}).items():
+        if field not in payload:
+            problems.append(f"missing required '{field}' ({kind})")
+        else:
+            check(field, kind, payload[field])
+    for field, kind in schema.get("optional", {}).items():
+        if field in payload:
+            check(field, kind, payload[field])
+    allowed = schema.get("generated_by", [])
+    generator = payload.get("generated_by")
+    if allowed and generator is not None and generator not in allowed:
+        problems.append(
+            f"generated_by {generator!r} is not pinned for this artifact — allowed: "
+            f"{', '.join(allowed)}. Adopting a new tool is a harness PR "
+            f"(harness.yaml + the schema file), never a local choice."
+        )
+    if problems:
+        raise SystemExit(
+            f"REFUSED by .agents/schemas/{path.name}:\n- " + "\n- ".join(problems)
+        )
+
+
 def head_sha(root: Path | None = None) -> str | None:
     proc = subprocess.run(
         ["git", "rev-parse", "HEAD"], cwd=root or repo_root(),

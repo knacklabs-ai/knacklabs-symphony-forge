@@ -6,7 +6,10 @@ import json
 import sys
 from pathlib import Path
 
-from factory_lib import head_sha, gate, dump_json, load_json, now_iso, repo_root, run_state_path, tests_state_path
+from factory_lib import (
+    dump_json, gate, head_sha, load_json, now_iso, repo_root, run_state_path,
+    tests_state_path, validate_payload,
+)
 
 
 def ensure_list(value):
@@ -34,6 +37,7 @@ else:
 
 root = repo_root()
 gate(root, signoff=True, approved_plan=True, decomposition=True)
+validate_payload(root, f"test-{args.kind}", payload)
 path = tests_state_path(root)
 existing = load_json(path, default={}) or {}
 entry = dict(payload)

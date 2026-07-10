@@ -337,6 +337,35 @@ def check_thin_adapter(root: Path) -> None:
                 )
 
 
+def check_schemas(root: Path) -> None:
+    """Schemas and the harness.yaml allowlist must not silently diverge:
+    every pinned generator in .agents/schemas/*.json must appear in
+    harness.yaml (substring — no YAML parser in a stdlib-only linter)."""
+    schemas_dir = root / ".agents" / "schemas"
+    manifest_path = root / "harness.yaml"
+    manifest = manifest_path.read_text() if manifest_path.is_file() else ""
+    for path in sorted(schemas_dir.glob("*.json")) if schemas_dir.is_dir() else []:
+        rel = path.relative_to(root)
+        try:
+            schema = json.loads(path.read_text())
+        except json.JSONDecodeError as exc:
+            violation(f"{rel}: invalid JSON ({exc}). Schemas are recorder contracts.")
+            continue
+        generators = schema.get("generated_by")
+        if not isinstance(generators, list) or not generators:
+            violation(
+                f"{rel}: missing or empty generated_by allowlist. Every artifact "
+                "schema must pin its permitted generators."
+            )
+            continue
+        for name in generators:
+            if name not in manifest:
+                violation(
+                    f"{rel}: generator '{name}' is not mentioned in harness.yaml. "
+                    "Pin it there (the allowlist) or remove it from the schema."
+                )
+
+
 def main() -> int:
     root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else None
     if root is None:
@@ -352,6 +381,7 @@ def main() -> int:
     check_plan_decision_refs(root)
     check_path_parity(root)
     check_thin_adapter(root)
+    check_schemas(root)
     for warning in warnings:
         print(warning)
     if violations:

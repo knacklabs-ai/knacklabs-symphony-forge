@@ -16,6 +16,7 @@ from factory_lib import (
     tests_state_path,
     verify_state_path,
 )
+from forge_cli.roadmap import mark_status
 
 # Commits touching only these paths after evidence was recorded do not
 # invalidate it: evidence/plan/doc records, harness machinery and adapters
@@ -71,7 +72,7 @@ for kind in ("automated", "functional"):
 for aspect in ("quality", "performance", "security"):
     path = review_dir(root) / f"{aspect}.json"
     data = load_json(path, default={})
-    blockers = data.get("blocking_findings", data.get("blocking", [])) if data else []
+    blockers = data.get("blocking_findings", []) if data else []
     if not data:
         missing.append(str(path.relative_to(root)))
     elif data.get("score", 0) < 8 or blockers:
@@ -162,4 +163,7 @@ for artifact in (run_state_path(root), decomposition_state_path(root),
         shutil.copy2(artifact, history / artifact.name)
 if review_dir(root).is_dir():
     shutil.copytree(review_dir(root), history / "reviews", dirs_exist_ok=True)
+if mark_status(root, issue_key, "done",
+               completed_at=now_iso(), history=f".factory/history/{issue_key}/"):
+    print(f"Roadmap: {issue_key} marked done")
 print(f"PR_READY (archived to .factory/history/{issue_key}/, plan moved to plans/completed/)")

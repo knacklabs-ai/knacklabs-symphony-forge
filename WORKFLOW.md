@@ -55,6 +55,31 @@ GitHub issue whenever unharvested context or unreviewed proposals exist, and
 the SessionStart hook surfaces the same counts at the start of every agent
 session. The `/forge` Claude skill routes all of this.
 
+## Determinism Contract
+
+The rule that decides deterministic vs non-deterministic, once, so nobody
+re-derives it per task:
+
+- **Gates, state transitions, and evidence recording are deterministic** —
+  scripts under `.agents/scripts/`, never skills, never judgment calls.
+- **Content generation (plans, code, tests, reviews, harvests) runs on the
+  phase's PINNED skills** — `harness.yaml` is the allowlist, not a suggestion.
+  Adopting a new tool is a PR to `harness.yaml` + the artifact's schema (then
+  `forge upgrade` propagates it), never a local dev choice.
+- **The only door into `.factory/` is a recorder** (`record_*_from_json.py`,
+  `forge roadmap import`) that validates the payload against its
+  `.agents/schemas/<artifact>.json` — required fields, types, and a
+  `generated_by` value inside the pinned allowlist. Nonconforming payloads
+  and unpinned generators are refused outright; there is no override flag.
+- **Prompts are the interface, recorder commands are the contract.** Devs
+  speak intents ("start a task for invoices", "is this PR ready?"); agents
+  run the mapped deterministic command. Anything an agent cannot route lands
+  on `./forge next`.
+
+Attestation trust model: `generated_by` is declared by the recording agent —
+falsifiable, but only deliberately, and it leaves an audit trail (same model
+as `plan assume` and decision records).
+
 ## Gating Model
 
 Gates are deterministic and run at phase transitions (`update_run.py`, `record_*` scripts, `pr_ready.py`) and on Bash commands (`pre_tool_use.py`) — never on prompt keywords or turn ends. Editing files before plan approval is deliberately not hard-blocked: unapproved work cannot pass verify, testing, review, or `pr_ready.py`, which is where the contract is enforced. This replaces the earlier prompt-keyword and stop-hook guards, which had false positives in both directions and never actually covered non-Bash edits.
@@ -65,6 +90,19 @@ Gates are deterministic and run at phase transitions (`update_run.py`, `record_*
   (mirror to a tracker if the project uses one).
 - Each leaf task must have write scope, dependencies, acceptance criteria, verify commands, and reviewer focus.
 - One task should fit one implementation session and one review package.
+
+## Project Roadmap
+
+`plans/roadmap.json` is the durable, ordered backlog — the handoff artifact
+listing every feature left to build and its execution order. It is recorded
+once from the project-level decomposition after sign-off
+(`./forge roadmap import --input <json>`, items in build-wave order) and
+survives every task cycle: task-scoped `.factory/decomposition.json` is
+cleared on each intake, the roadmap never is. Item lifecycle: `pending` →
+`active` (set by intake) → `done` (set by `pr_ready.py`, with a link to
+`.factory/history/<issue>/`). `forge next` suggests the next pending item.
+Scope changes are PR edits to the file — future planning refines the roadmap,
+it does not silently regenerate it.
 
 ## Task Planning
 Per-task planning runs in Claude Code plan mode by default (exploration

@@ -34,6 +34,22 @@ Each epic should include:
 - `objective`
 - `source_refs`
 
+## Project roadmap (handoff only)
+
+When you run at handoff — the first, project-level decomposition after client
+sign-off — also emit the durable backlog: one roadmap item per feature, in
+build-wave (execution) order, and record it:
+
+```bash
+./forge roadmap import --input /tmp/roadmap.json
+```
+
+Input shape: `{"items": [{"key": "<ISSUE-KEY>", "title": "...", "epic": "<epic id>"}]}` —
+list position is execution order. `plans/roadmap.json` survives every task
+cycle (intake marks items active, pr_ready marks them done, `forge next`
+suggests the next pending one); refine it by PR as planning learns more.
+Per-task decompositions never rewrite the roadmap.
+
 Each task should include:
 - `id`
 - `title`

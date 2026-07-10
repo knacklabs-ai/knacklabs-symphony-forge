@@ -7,6 +7,7 @@ from pathlib import Path
 from factory_lib import load_json, repo_root, run_state_path
 
 from .context import pending_context
+from .roadmap import load_items
 
 
 def cmd_next(args: argparse.Namespace) -> None:
@@ -40,7 +41,26 @@ def cmd_next(args: argparse.Namespace) -> None:
                      "then run record_signoff.py")
     elif not state.get("issue_key"):
         phase("signed off — no active task")
-        steps.append("Start a task: python3 .agents/scripts/intake.py --issue <KEY> --title \"<title>\"")
+        items = load_items(base)
+        pending_items = [i for i in items if i.get("status", "pending") == "pending"]
+        if pending_items:
+            nxt = pending_items[0]
+            steps.append(f"Next on the roadmap: {nxt['key']} — {nxt['title']}. Start it: "
+                         f"python3 .agents/scripts/intake.py --issue {nxt['key']} "
+                         f"--title \"{nxt['title']}\"")
+            if len(pending_items) > 1:
+                steps.append(f"({len(pending_items) - 1} more pending — "
+                             "./forge roadmap list --pending)")
+        elif items:
+            steps.append("Roadmap is fully built or in flight (./forge roadmap list) — "
+                         "extend it, or start an off-roadmap task: "
+                         "python3 .agents/scripts/intake.py --issue <KEY> --title \"<title>\"")
+        else:
+            steps.append("No plans/roadmap.json yet — record the project backlog at handoff: "
+                         "./forge roadmap import --input <json> "
+                         "(project-level decomposition, .agents/prompts/decomposer.md)")
+            steps.append("Or start a task directly: python3 .agents/scripts/intake.py "
+                         "--issue <KEY> --title \"<title>\"")
     elif state.get("plan_status") != "approved":
         phase("planning")
         steps.append("Plan per .agents/prompts/planner.md — Claude Code plan mode (default, "
@@ -80,7 +100,8 @@ def cmd_next(args: argparse.Namespace) -> None:
         else:
             phase("ready for PR gate")
             steps.append("Run: python3 .agents/scripts/pr_ready.py (archives the task; merge stays manual)")
-            steps.append("Next task afterwards: intake.py --issue <KEY> --title \"<title>\"")
+            steps.append("Next task afterwards: pick from ./forge roadmap list --pending, "
+                         "then intake.py --issue <KEY> --title \"<title>\"")
     proposed = len(list((base / ".agents" / "skills" / "proposed").glob("*.md")))
     if proposed:
         steps.append(f"(Also: {proposed} proposed skill(s) await human review in "

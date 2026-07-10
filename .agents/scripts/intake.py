@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 from factory_lib import dump_json, ensure_issue_key, load_json, now_iso, repo_root, run_state_path, slugify
+from forge_cli.roadmap import mark_status
 
 parser = argparse.ArgumentParser(description="Initialize factory run state")
 parser.add_argument("--issue", help="Linear issue key, e.g. ENG-123")
@@ -69,6 +70,8 @@ if stale_files or active_plans:
             print(f"Abandoned plan moved to plans/debt/{plan.name}")
 dump_json(run_state_path(root), state)
 print(f"Initialized factory state for {issue_key} -> {branch}")
+if mark_status(root, issue_key, "active"):
+    print(f"Roadmap: {issue_key} marked active (plans/roadmap.json)")
 if not signed_off:
     print(
         "Phase set to 'discovery': client sign-off not recorded yet. "

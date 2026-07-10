@@ -1,0 +1,19 @@
+{
+  "artifact": "test-automated",
+  "phase": "testing",
+  "recorded_by": "record_test_from_json.py --kind automated",
+  "generated_by": ["implementer"],
+  "required": {
+    "generated_by": "str",
+    "status": "str",
+    "summary": "str",
+    "blocking_findings": "list",
+    "commands_run": "list"
+  },
+  "optional": {
+    "tests_added_or_updated": "list",
+    "pass_fail_summary": "str",
+    "remaining_gaps": "list",
+    "reviewed_scope": "list"
+  }
+}

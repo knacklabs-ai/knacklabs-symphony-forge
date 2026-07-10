@@ -102,6 +102,8 @@ A task is not PR-ready until all of these exist:
 - Keep tasks bounded and capability-driven.
 - Do not decompose by document file or arbitrary file count.
 - Do not bypass `verify.py` with ad hoc validation commands.
+- Evidence enters `.factory/` only via `record_*` scripts validating
+  `.agents/schemas/` (incl. a pinned `generated_by`) — never hand-written.
 - Do not do review inline when review subagents can be spawned.
 - Keep the template repo independent of any client-specific source repo.
 - Do not keep long policy blocks in `AGENTS.md`; move them into docs.

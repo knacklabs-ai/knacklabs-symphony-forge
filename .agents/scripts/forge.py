@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """forge — the harness CLI. `./forge <command>` from the repo root.
 
-Commands: doctor, init, next, plan (save|assume), context (scan|list|mark),
-decision (new|accept). Implementations live in forge_cli/ — one module per
-concern; this file is argument wiring only.
+Commands: doctor, init, next, plan (save|assume), roadmap (import|list|add),
+context (scan|list|mark), decision (new|accept). Implementations live in
+forge_cli/ — one module per concern; this file is argument wiring only.
 """
 from __future__ import annotations
 
 import argparse
 
 from forge_cli import context as ctx
-from forge_cli import decisions, doctor, phase, plans, scaffold, upgrade
+from forge_cli import decisions, doctor, phase, plans, roadmap, scaffold, upgrade
 
 
 def main() -> None:
@@ -55,6 +55,25 @@ def main() -> None:
     p_assume.add_argument("--issue", help="issue key (defaults to .factory/run.json)")
     p_assume.add_argument("--repo")
     p_assume.set_defaults(func=plans.cmd_assume)
+
+    p_rm = sub.add_parser("roadmap", help="the durable project backlog (plans/roadmap.json)")
+    rm_sub = p_rm.add_subparsers(dest="roadmap_command", required=True)
+    p_imp = rm_sub.add_parser("import",
+                              help="record/merge the ordered feature list from a decomposition")
+    p_imp.add_argument("--input", required=True,
+                       help='JSON: {"items": [{key,title,epic}]} in execution order')
+    p_imp.add_argument("--repo")
+    p_imp.set_defaults(func=roadmap.cmd_import)
+    p_rl = rm_sub.add_parser("list", help="show the roadmap with status")
+    p_rl.add_argument("--pending", action="store_true")
+    p_rl.add_argument("--repo")
+    p_rl.set_defaults(func=roadmap.cmd_list)
+    p_ra = rm_sub.add_parser("add", help="append one item to the roadmap")
+    p_ra.add_argument("key")
+    p_ra.add_argument("title")
+    p_ra.add_argument("--epic")
+    p_ra.add_argument("--repo")
+    p_ra.set_defaults(func=roadmap.cmd_add)
 
     p_ctx = sub.add_parser("context", help="track the docs/context inbox")
     ctx_sub = p_ctx.add_subparsers(dest="context_command", required=True)

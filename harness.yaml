@@ -1,5 +1,9 @@
-# harness.yaml — precedence manifest: one owner per lifecycle phase.
-# The dual-runtime linter treats this file as canon. Changes land by PR only.
+# harness.yaml — precedence manifest AND skill allowlist: one owner per
+# lifecycle phase, and the pinned generators for every recorded artifact.
+# The dual-runtime linter treats this file as canon; recorders enforce each
+# artifact's generated_by against the pins mirrored in .agents/schemas/.
+# Adopting a new tool = a PR to this file + the schema file, never a local
+# dev choice. Changes land by PR only.
 version: 1
 
 # When guidance conflicts, earlier wins.
@@ -23,6 +27,17 @@ phases:
       screenshots, walkthrough notes) as the UX reference for future UI/UX
       changes. Reference forever, imported never: production code must not
       depend on anything in prototype/.
+  handoff:
+    owner: "codex:docs-decomposer"
+    allowed:
+      - "docs-decomposer"
+      - "human"
+    artifact: "plans/roadmap.json via ./forge roadmap import"
+    schema: ".agents/schemas/roadmap.json"
+    notes: >-
+      The project-level decomposition after sign-off: every feature as a
+      roadmap item in build-wave order. The roadmap survives task cycles;
+      refined by PR (a human edit counts as generated_by: human).
   planning:
     owner: "claude-code:plan-mode"
     alternate: "codex:planner-high"
@@ -37,18 +52,43 @@ phases:
       forge.py plan save step, same gates. When planning in Claude, delegate
       ALL codebase exploration to Codex read-only runs (/codex:rescue or
       `codex exec -s read-only`). Approval is the saved plan file, not a flag.
+  decomposition:
+    owner: "codex:docs-decomposer"
+    allowed:
+      - "docs-decomposer"
+      - "planner-high"
+      - "claude-code:plan-mode"
+    contract: ".agents/prompts/decomposer.md"
+    schema: ".agents/schemas/decomposition.json"
+    notes: "Per-task task graph; records the user_facing flag the ship gate reads."
   implementation:
     owner: "codex:/codex:rescue"
     prompts: ".agents/prompts/implementer.md"
+    notes: >-
+      The implementer also writes and runs the automated tests and records
+      the testing artifact — there is no separate tester subagent.
   testing:
-    owner: "codex-subagents:automated-tester,functional-checker"
+    owner: "codex:implementer"
+    allowed:
+      - "implementer"
+    schema: ".agents/schemas/test-automated.json"
+    functional:
+      owner: "codex:functional-checker"
+      allowed:
+        - "functional-checker"
+      schema: ".agents/schemas/test-functional.json"
+      when: "decomposition.user_facing == true (otherwise not required)"
   review:
-    owner: "codex-subagents:quality,performance,security"
-    escalation:
-      tool: "autoreview"
-      when: "security-sensitive|migration|cross-domain"
-      at: "pr-ready"
-    notes: "Never both review loops on one task (never nest reviewers)."
+    owner: "codex:autoreview"
+    allowed:
+      - "autoreview"
+    contract: ".agents/prompts/reviewer.md"
+    schema: ".agents/schemas/review.json"
+    notes: >-
+      ONE autoreview run reviews through three lenses (quality incl.
+      over-engineering, performance, security) and emits the three gate
+      artifacts. Never nest reviewers; never review inline in the
+      coordinating session.
   ship:
     owner: ".agents/scripts/pr_ready.py"
     merge: manual

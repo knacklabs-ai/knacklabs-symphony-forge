@@ -6,7 +6,10 @@ import json
 import sys
 from pathlib import Path
 
-from factory_lib import head_sha, gate, dump_json, load_json, now_iso, repo_root, review_dir, run_state_path
+from factory_lib import (
+    dump_json, gate, head_sha, load_json, now_iso, repo_root, review_dir,
+    run_state_path, validate_payload,
+)
 
 
 def ensure_list(value):
@@ -34,25 +37,15 @@ else:
 
 root = repo_root()
 gate(root, signoff=True, approved_plan=True, decomposition=True)
+validate_payload(root, "review", payload)
 path = review_dir(root) / f"{args.aspect}.json"
-blocking_findings = ensure_list(payload.get("blocking_findings", payload.get("blocking")))
-non_blocking_findings = ensure_list(payload.get("non_blocking_findings", payload.get("warnings")))
-residual_risks = ensure_list(payload.get("residual_risks"))
-reviewed_scope = ensure_list(payload.get("reviewed_scope"))
-review = {
-    "aspect": args.aspect,
-    "score": int(payload["score"]),
-    "summary": str(payload["summary"]),
-    "blocking_findings": blocking_findings,
-    "non_blocking_findings": non_blocking_findings,
-    "residual_risks": residual_risks,
-    "recommendation": str(payload.get("recommendation", "approve-with-caveats")),
-    "reviewed_scope": reviewed_scope,
-    "blocking": blocking_findings,
-    "warnings": non_blocking_findings,
-    "recorded_at": now_iso(),
-    "commit": head_sha(root),
-}
+review = dict(payload)
+review["aspect"] = args.aspect
+for key in ("blocking_findings", "non_blocking_findings", "residual_risks", "reviewed_scope"):
+    review[key] = ensure_list(payload.get(key))
+review.setdefault("recommendation", "approve-with-caveats")
+review["recorded_at"] = now_iso()
+review["commit"] = head_sha(root)
 dump_json(path, review)
 state = load_json(run_state_path(root), default={})
 if state:

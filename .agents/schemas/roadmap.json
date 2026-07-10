@@ -1,0 +1,11 @@
+{
+  "artifact": "roadmap",
+  "phase": "handoff",
+  "recorded_by": "forge roadmap import --input <json>",
+  "generated_by": ["docs-decomposer", "human"],
+  "required": {
+    "generated_by": "str",
+    "items": "list"
+  },
+  "optional": {}
+}
