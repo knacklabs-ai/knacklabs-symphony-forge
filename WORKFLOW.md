@@ -38,8 +38,10 @@ Unstructured context (client emails, transcripts, notes) goes in
 scan` registers files in `docs/context/ledger.json` (CI enforces freshness);
 an agent following `.agents/prompts/harvester.md` turns pending files into
 proposed decision records and BRIEF/architecture edits, then marks them
-harvested with their outputs. Check `context list --pending` before planning:
-plans must not be written over unharvested context. Broader doc freshness
+harvested with their outputs (`--ignored` requires notes). Pending context is
+surfaced on four channels: the SessionStart hook count, step 1 of
+`forge next`, the daily gardener issue, and — the hard stop — `plan save`
+refuses while anything is pending. Broader doc freshness
 follows `harness/nestjs-react/conventions/doc-gardening.md` (gardening agent —
 convention today, not yet automated).
 

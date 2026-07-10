@@ -164,6 +164,31 @@ or stale. Merge stays manual.
 
 ---
 
+## Continuously: the context inbox
+
+Client emails, meeting transcripts, voice-note summaries, stray docs — drop
+them in `docs/context/` the moment you get them. Dumping is free; tracking is
+automatic. Then say: **"Process the context dump."**
+
+```bash
+./forge context scan                 # register files in docs/context/ledger.json
+# agent harvests per .agents/prompts/harvester.md:
+#   pending file -> proposed decision records + DISCOVERY/BRIEF/architecture edits
+./forge context mark <file> --harvested --outputs <paths>   # or --ignored --notes "why"
+./forge context list --pending
+```
+
+**You will not miss pending context — four surfaces make sure:**
+1. every agent session opens with the unharvested count (SessionStart hook)
+2. `./forge next` puts "harvest first" as step 1 in any phase
+3. the daily `gardener` workflow opens a GitHub issue while anything is
+   pending, and closes it at zero
+4. `./forge plan save` **refuses** while context is pending — you cannot
+   approve a plan over an unread client email
+
+Decisions proposed by a harvest still need a HUMAN accept
+(`./forge decision accept <slug> --by "Name"`).
+
 ## Keeping your repo honest
 
 Recorders refuse any artifact that does not match its schema in

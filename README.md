@@ -30,7 +30,7 @@ The `caw-new-project` skill updates the harness, runs `doctor --fix` (installs t
 
 - **Before sign-off**: lightweight on purpose — no ceremony, no time-box. Discovery via gstack `/office-hours`; the prototype that earns sign-off is preserved in `prototype/` as the permanent UX reference.
 - **After sign-off**: deterministic gates. Plans live in `plans/`, decisions in `docs/decisions/`, evidence in `.factory/`; `pr_ready.py` archives every shipped task's plan + proof to `plans/completed/` and `.factory/history/`.
-- **Continuously**: dump raw context (client emails, transcripts) into `docs/context/` — a ledger tracks harvest status, and agents turn pending files into proposed decisions and doc updates. Dev corrections get mined into proposed skills (`.agents/skills/proposed/`) that humans promote.
+- **Continuously**: dump raw context (client emails, transcripts, notes) into `docs/context/` — dumping is free, tracking is automatic. Say *"process the context dump"* and an agent scans it into the ledger, harvests it into proposed decisions and BRIEF/architecture updates, and marks each file. You can't miss pending context: it greets every session start, tops every `./forge next`, raises a daily `gardener` issue, and **blocks `plan save`** until harvested or explicitly ignored. Dev corrections get mined into proposed skills (`.agents/skills/proposed/`) that humans promote.
 
 Phase ownership — which tool runs which phase — is declared in [`harness.yaml`](harness.yaml).
 
@@ -60,7 +60,8 @@ choice.
 | review | "Review it" | **autoreview** (ONE Codex run, three lenses) | `record_review_from_json.py` ×3 |
 | functional check | only if `user_facing: true` | `functional-checker` subagent | `record_test_from_json.py --kind functional` |
 | ship | "Is this PR ready?" | none — deterministic gate | `pr_ready.py` → archives + roadmap done |
-| context harvest | "Process the context dump" | agent per `harvester.md` | `./forge context mark` |
+| context dump | drop files in `docs/context/`, then "scan the context" | `/forge` → `./forge context scan` | `docs/context/ledger.json` |
+| context harvest | "Process the context dump" | agent per `harvester.md` → proposed decisions + BRIEF edits | `./forge context mark --harvested\|--ignored` |
 | retro / evolution | "Mine for skills" | agent per `skill-miner.md` + daily `gardener` workflow | proposals in `.agents/skills/proposed/` |
 
 ## Structure
