@@ -16,7 +16,7 @@ Every change must pass six independent checks:
 - model: `gpt-5.5`
 - reasoning: `high`
 - mode: `read-only`
-- focus: correctness, regressions, maintainability-as-risk, test gaps, contract drift
+- focus: correctness, regressions, maintainability-as-risk, test gaps, contract drift, over-engineering (constitution-mandated structure exempt)
 
 ### performance-reviewer
 - model: `gpt-5.5`

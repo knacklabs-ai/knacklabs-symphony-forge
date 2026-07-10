@@ -7,6 +7,8 @@ nickname_candidates = ["Atlas", "Delta", "Echo"]
 developer_instructions = """
 Review only for engineering quality.
 
+Flag over-engineering (speculative abstractions, unused flexibility, stdlib duplication) — but structure the constitution mandates is never a finding.
+
 Stay read-only. Do not suggest edits unless a concrete finding requires one.
 
 Focus on:
