@@ -49,13 +49,13 @@ Phases at `planning` or later are refused by `update_run.py` and `pre_tool_use.p
 Minimum set for a production run:
 - `planner-high`
 - `docs-decomposer`
-- `automated-tester`
-- `functional-checker`
-- `quality-reviewer`
-- `performance-reviewer`
-- `security-reviewer`
+- `functional-checker` (user-facing tasks only)
+- the autoreview skill (one run, three review lenses)
 
-This is enough for planning, decomposition, implementation support, testing, and isolated review. Add more agents only when the repo has a repeated bottleneck that justifies another role.
+The implementer writes, runs, and records the automated tests — there is no
+separate tester agent. This is enough for planning, decomposition,
+implementation support, testing, and isolated review. Add more agents only
+when the repo has a repeated bottleneck that justifies another role.
 
 ## Reasoning Matrix
 
@@ -71,7 +71,7 @@ Use strong reasoning selectively.
   - model: `gpt-5.5`
   - reasoning: `high`
   - use only for migrations, cross-domain refactors, concurrency, security-sensitive work, or ambiguous failure modes
-- reviewers
+- review (autoreview run)
   - model: `gpt-5.5`
   - reasoning: `high`
 - functional checker

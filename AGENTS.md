@@ -8,7 +8,8 @@ It provides:
 - planner-owned decomposition
 - bounded implementation tasks
 - deterministic verification
-- testing and review subagents
+- schema-validated evidence recording
+- autoreview-owned review
 - PR-ready proof artifacts
 
 `AGENTS.md` stays short on purpose. Use it as a map.
@@ -39,12 +40,11 @@ Codex executes exploration, implementation, testing, and review. The `.factory` 
 2. create or update the plan
 3. generate decomposition
 4. wait for approval
-5. implement one bounded task
-6. run automated testing
-7. run deterministic verify
-8. run review subagents
-9. run functional checks
-10. mark PR ready
+5. implement one bounded task (the implementer writes and records the tests)
+6. run deterministic verify
+7. run one autoreview pass (three lenses: quality, performance, security)
+8. run the functional check when the decomposition says `user_facing: true`
+9. mark PR ready
 
 Phases at `planning` or later are refused until `client_signoff` is true in `.factory/run.json`.
 Implementation never starts before plan approval and recorded decomposition.
@@ -56,11 +56,10 @@ Prompt files under `.agents/prompts/` are phase contracts. They are invoked expl
 Default specialist set:
 - `planner-high`
 - `docs-decomposer`
-- `automated-tester`
-- `functional-checker`
-- `quality-reviewer`
-- `performance-reviewer`
-- `security-reviewer`
+- `functional-checker` (user-facing tasks only)
+- the autoreview skill (review — all three lenses, one run)
+
+Testing has no separate agent: the implementer writes and records the tests.
 
 ## Reasoning Defaults
 
@@ -73,6 +72,7 @@ Do not default the entire repo to `high` reasoning for every task.
 
 ## Deterministic Commands
 
+Devs speak intents; the `/forge` skill maps them to these commands.
 Lost? `./forge next` prints the current phase and exact next actions.
 
 ```bash
@@ -104,6 +104,7 @@ A task is not PR-ready until all of these exist:
 - Do not bypass `verify.py` with ad hoc validation commands.
 - Evidence enters `.factory/` only via `record_*` scripts validating
   `.agents/schemas/` (incl. a pinned `generated_by`) — never hand-written.
-- Do not do review inline when review subagents can be spawned.
+- Review runs as ONE autoreview pass in Codex — never inline in the
+  coordinating session, never nested reviewers.
 - Keep the template repo independent of any client-specific source repo.
 - Do not keep long policy blocks in `AGENTS.md`; move them into docs.

@@ -15,7 +15,7 @@ Read `AGENTS.md` first; it is the contract. Standards live in `constitution/`
 ## codex-plugin-cc
 
 - Delegate implementation with `/codex:rescue --background`.
-- Review with `/codex:review` / `/codex:adversarial-review` at the review phase.
+- Review = ONE autoreview run in Codex, three lenses (`.agents/prompts/reviewer.md`).
 - The Stop-hook review gate must stay DISABLED (`/codex:setup --disable-review-gate`).
 - If the plugin is unavailable, follow `docs/degraded-mode.md`.
 

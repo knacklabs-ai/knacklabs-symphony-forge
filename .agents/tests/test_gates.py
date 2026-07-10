@@ -661,3 +661,35 @@ def test_linter_catches_schema_allowlist_divergence(repo):
     schema.write_text(json.dumps(data))
     code, out = run(repo, "check_dual_runtime.py", str(repo))
     assert code != 0 and "rogue-tool" in out
+
+
+def test_functional_check_conditional_on_user_facing(repo, tmp_path):
+    sign_off(repo)
+    intake(repo)
+    save_plan(repo, tmp_path)
+    run(repo, "update_run.py", "--decomposition-status", "recorded")
+    # user_facing: false — gate passes without a functional artifact
+    write_passing_artifacts(repo)
+    f = repo / ".factory"
+    decomp = json.loads((f / "decomposition.json").read_text())
+    decomp["user_facing"] = False
+    (f / "decomposition.json").write_text(json.dumps(decomp))
+    tests = json.loads((f / "tests.json").read_text())
+    del tests["functional"]
+    (f / "tests.json").write_text(json.dumps(tests))
+    code, out = run(repo, "pr_ready.py")
+    assert code == 0, out
+
+
+def test_functional_check_required_when_user_facing(repo, tmp_path):
+    sign_off(repo)
+    intake(repo)
+    save_plan(repo, tmp_path)
+    run(repo, "update_run.py", "--decomposition-status", "recorded")
+    write_passing_artifacts(repo)  # user_facing: true via DECOMP
+    f = repo / ".factory"
+    tests = json.loads((f / "tests.json").read_text())
+    del tests["functional"]
+    (f / "tests.json").write_text(json.dumps(tests))
+    code, out = run(repo, "pr_ready.py")
+    assert code != 0 and "functional" in out

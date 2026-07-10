@@ -148,12 +148,11 @@ durable record of what was decided and what was built.
 3. record client sign-off
 4. create an approved plan
 5. record decomposition
-6. implement one leaf task
-7. run `automated-tester`
-8. run `python3 .agents/scripts/verify.py`
-9. spawn review subagents
-10. run `functional-checker`
-11. run `python3 .agents/scripts/pr_ready.py`
+6. implement one leaf task — the implementer writes, runs, and records the automated tests
+7. run `python3 .agents/scripts/verify.py`
+8. run ONE autoreview pass (three lenses) and record the three review artifacts
+9. run `functional-checker` when the decomposition has `user_facing: true`
+10. run `python3 .agents/scripts/pr_ready.py`
 
 ## PR Ready Contract
 A branch is PR-ready only when:

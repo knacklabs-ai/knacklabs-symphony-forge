@@ -20,13 +20,17 @@ Rules:
 - each leaf task must fit one implementation session and one review package
 - each leaf task must include dependencies, write scope, acceptance criteria, verify commands, required tests, and reviewer focus
 
-Output JSON with:
+Output JSON matching `.agents/schemas/decomposition.json` (with
+`"generated_by"` set to your agent name), including:
 - `project`
 - `doc_roots`
 - `epics`
 - `tasks`
 - `build_waves`
 - `linear_plan`
+- `user_facing` — `true` if ANY part of this task graph changes user-visible
+  behavior (UI, API responses users see, flows). The ship gate reads this
+  flag to decide whether a functional check is required; when in doubt, `true`.
 
 Each epic should include:
 - `id`

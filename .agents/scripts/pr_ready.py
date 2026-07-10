@@ -60,10 +60,15 @@ if not decomposition:
     missing.append(".factory/decomposition.json")
 if not verify or not verify.get("ok"):
     missing.append("successful .factory/verify.json")
+# The functional check is owed only to user-facing work; the decomposition's
+# recorded flag decides — never the dev at gate time. Missing flag = required.
+user_facing = bool(decomposition.get("user_facing", True)) if decomposition else True
 for kind in ("automated", "functional"):
     entry = tests.get(kind, {}) if tests else {}
     blockers = entry.get("blocking_findings", []) if entry else []
     if not entry:
+        if kind == "functional" and not user_facing:
+            continue
         missing.append(f".factory/tests.json:{kind}")
     elif blockers or entry.get("status") == "failed":
         missing.append(f"{kind} testing must have no blockers and no failed status")

@@ -22,5 +22,17 @@ Rules:
   Assumptions`, where the dev reviews it before merge and promotes durable
   ones to `docs/decisions/`. An assumption that would *change* the plan's
   scope or acceptance criteria is not an assumption — stop and report instead.
+- **You own the automated tests.** There is no separate tester subagent:
+  write or update tests for the changed behavior, run the scoped test
+  commands, and record the artifact yourself — JSON per
+  `.agents/schemas/test-automated.json` with `"generated_by": "implementer"`,
+  recorded via:
+
+  ```bash
+  python3 .agents/scripts/record_test_from_json.py --kind automated --input <json>
+  ```
+
+  Report remaining coverage gaps honestly; autoreview checks coverage as one
+  of its lenses.
 - Before handoff, run the self-check prompt and update `.factory` artifacts.
   Handoff with unrecorded assumptions is an incomplete handoff.

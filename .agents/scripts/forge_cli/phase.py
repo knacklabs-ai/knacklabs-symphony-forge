@@ -75,6 +75,8 @@ def cmd_next(args: argparse.Namespace) -> None:
     else:
         tests = load_json(factory / "tests.json", default={})
         verify = load_json(factory / "verify.json", default={})
+        decomp = load_json(factory / "decomposition.json", default={})
+        user_facing = bool(decomp.get("user_facing", True))
         reviews_missing = [
             a for a in ("quality", "performance", "security")
             if not load_json(factory / "reviews" / f"{a}.json", default={})
@@ -83,19 +85,19 @@ def cmd_next(args: argparse.Namespace) -> None:
             phase("implementing")
             steps.append("Implement the next bounded leaf task via /codex:rescue --background "
                          "(.agents/prompts/implementer.md)")
-            steps.append("Then run automated-tester and record: "
+            steps.append("The implementer writes/runs the tests and records: "
                          "record_test_from_json.py --kind automated --input <json>")
         elif not verify.get("ok"):
             phase("verifying")
             steps.append("Run: python3 .agents/scripts/verify.py")
         elif reviews_missing:
             phase("reviewing")
-            steps.append(f"Spawn review subagents for: {', '.join(reviews_missing)}; record via "
-                         "record_review_from_json.py (escalate flagged tasks to autoreview "
-                         "per harness.yaml)")
-        elif not tests.get("functional"):
+            steps.append("Run ONE autoreview pass in Codex, three lenses "
+                         f"(.agents/prompts/reviewer.md); still to record: {', '.join(reviews_missing)} "
+                         "via record_review_from_json.py")
+        elif not tests.get("functional") and user_facing:
             phase("functional-check")
-            steps.append("Run functional-checker and record: "
+            steps.append("Task is user-facing: run functional-checker and record: "
                          "record_test_from_json.py --kind functional --input <json>")
         else:
             phase("ready for PR gate")
