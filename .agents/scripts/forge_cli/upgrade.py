@@ -91,6 +91,28 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
         shutil.copytree(kept, dst)
     shutil.rmtree(keep_root, ignore_errors=True)
 
+    # Newer harness additions that older scaffolds predate: create-if-missing /
+    # append-if-missing (never overwrite — projects may extend these files).
+    ensured: list[str] = []
+    if not (target / ".envrc").exists():
+        shutil.copy2(harness / ".envrc", target / ".envrc")
+        ensured.append(".envrc (run `direnv allow` in the repo)")
+    attrs = target / ".gitattributes"
+    if not attrs.exists():
+        shutil.copy2(harness / ".gitattributes", attrs)
+        ensured.append(".gitattributes")
+    elif "merge=jsonl-append" not in attrs.read_text():
+        with attrs.open("a") as fh:
+            fh.write("\n.gstack/**/*.jsonl merge=jsonl-append\n")
+        ensured.append(".gitattributes (jsonl merge rule appended)")
+    gitignore = target / ".gitignore"
+    if gitignore.exists() and ".gstack/sessions/" not in gitignore.read_text():
+        with gitignore.open("a") as fh:
+            fh.write("\n# Project-local gstack store: projects/ committed, machine noise not\n"
+                     ".gstack/sessions/\n.gstack/analytics/\n.gstack/cdp-profile/\n"
+                     ".gstack/tmp/\n.gstack/.*\n")
+        ensured.append(".gitignore (gstack entries appended)")
+
     commit = head_sha(harness) or "unknown"
     (target / "constitution" / "VENDORED_FROM").write_text(
         f"symphony-forge @ {commit}\nUpdate by re-vendoring from the harness repo; do not edit in place.\n"
@@ -102,6 +124,8 @@ def cmd_upgrade(args: argparse.Namespace) -> None:
                  "left untouched) — diff manually if the phase contract changed upstream.")
     print(f"Upgraded {target} to symphony-forge @ {commit[:8]}")
     print("Replaced (harness-owned): " + ", ".join(UPGRADE_TREES + UPGRADE_FILES) + ", doc contracts")
+    if ensured:
+        print("Added (missing on this older scaffold): " + ", ".join(ensured))
     print("Untouched (project-owned): " + ", ".join(PROJECT_OWNED) + drift)
     print("Next: review with `git diff`, run `python3 .agents/scripts/check_dual_runtime.py` "
           "and the gate tests, then commit.")

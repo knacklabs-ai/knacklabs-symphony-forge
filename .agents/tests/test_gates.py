@@ -795,3 +795,24 @@ def test_gstack_migrate_fails_clearly_without_store(repo, tmp_path):
     code, out = run(repo, "forge.py", "gstack", "migrate",
                     "--source", str(empty), "--repo", str(repo))
     assert code != 0 and "no personal gstack store" in out
+
+
+def test_upgrade_delivers_gstack_setup_to_older_scaffolds(repo):
+    # Simulate a scaffold created before the project-local gstack change
+    (repo / ".envrc").unlink()
+    (repo / ".gitattributes").unlink()
+    gitignore = repo / ".gitignore"
+    gitignore.write_text(
+        "\n".join(l for l in gitignore.read_text().splitlines() if ".gstack" not in l) + "\n"
+    )
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "old-style scaffold")
+    proc = subprocess.run(
+        [sys.executable, str(HARNESS / ".agents" / "scripts" / "forge.py"),
+         "upgrade", "--target", str(repo)],
+        capture_output=True, text=True,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert 'GSTACK_HOME="$PWD/.gstack"' in (repo / ".envrc").read_text()
+    assert "merge=jsonl-append" in (repo / ".gitattributes").read_text()
+    assert ".gstack/sessions/" in gitignore.read_text()
