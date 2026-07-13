@@ -17,11 +17,10 @@ def context_paths(base: Path) -> tuple[Path, Path]:
 def sha256_file(path: Path) -> str:
     import hashlib
 
-    digest = hashlib.sha256()
-    with path.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(65536), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+    # Normalize CRLF so the fingerprint is identical no matter which OS (or
+    # git autocrlf setting) checked out the working copy — otherwise a ledger
+    # written on Windows fails the freshness check on Linux CI and vice versa.
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
 def context_files(context_dir: Path) -> list[Path]:
@@ -31,7 +30,7 @@ def context_files(context_dir: Path) -> list[Path]:
     return sorted(
         p for p in context_dir.rglob("*")
         if p.is_file()
-        and str(p.relative_to(context_dir)) not in skip
+        and p.relative_to(context_dir).as_posix() not in skip
         and not p.name.startswith(".")
     )
 
@@ -49,7 +48,7 @@ def pending_context(base: Path) -> list[str]:
     ]
     if context_dir.is_dir():
         for f in context_files(context_dir):
-            rel = str(f.relative_to(context_dir))
+            rel = f.relative_to(context_dir).as_posix()
             entry = ledger.get("files", {}).get(rel)
             if entry is None or (
                 entry.get("status") != "pending" and entry.get("sha256") != sha256_file(f)
@@ -65,7 +64,7 @@ def cmd_scan(args: argparse.Namespace) -> None:
     ledger = load_json(ledger_path, default={"files": {}})
     drift: list[str] = []
     for f in context_files(context_dir):
-        rel = str(f.relative_to(context_dir))
+        rel = f.relative_to(context_dir).as_posix()
         digest = sha256_file(f)
         entry = ledger["files"].get(rel)
         if entry is None:
@@ -77,7 +76,7 @@ def cmd_scan(args: argparse.Namespace) -> None:
         elif entry.get("sha256") != digest:
             drift.append(f"changed (re-pending): {rel}")
             entry.update({"sha256": digest, "status": "pending", "updated": now_iso()})
-    on_disk = {str(f.relative_to(context_dir)) for f in context_files(context_dir)}
+    on_disk = {f.relative_to(context_dir).as_posix() for f in context_files(context_dir)}
     for rel in sorted(set(ledger["files"]) - on_disk):
         drift.append(f"missing (marked removed): {rel}")
         ledger["files"][rel]["status"] = "removed"

@@ -150,7 +150,7 @@ completed = root / "plans" / "completed"
 completed.mkdir(parents=True, exist_ok=True)
 for plan_file in plan_files:
     shutil.move(str(plan_file), completed / plan_file.name)
-    run_state["plan_file"] = str((completed / plan_file.name).relative_to(root))
+    run_state["plan_file"] = (completed / plan_file.name).relative_to(root).as_posix()
 
 run_state["phase"] = "pr-ready"
 run_state["review_status"] = "passed"
