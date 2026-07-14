@@ -847,3 +847,20 @@ def test_upgrade_delivers_gstack_setup_to_older_scaffolds(repo):
     assert 'GSTACK_HOME="$PWD/.gstack"' in (repo / ".envrc").read_text()
     assert "merge=jsonl-append" in (repo / ".gitattributes").read_text()
     assert ".gstack/sessions/" in gitignore.read_text()
+
+
+def test_next_routes_design_skills_by_feature_type(repo, tmp_path):
+    sign_off(repo)
+    intake(repo)
+    save_plan(repo, tmp_path)
+    run(repo, "record_decomposition_from_json.py", stdin=json.dumps(DECOMP))  # user_facing: true
+    run(repo, "update_run.py", "--decomposition-status", "recorded")
+    code, out = run(repo, "forge.py", "next")
+    assert code == 0 and "emil-design-eng" in out
+    # backend task: no design skills suggested
+    decomp_path = repo / ".factory" / "decomposition.json"
+    data = json.loads(decomp_path.read_text())
+    data["user_facing"] = False
+    decomp_path.write_text(json.dumps(data))
+    code, out = run(repo, "forge.py", "next")
+    assert code == 0 and "emil-design-eng" not in out

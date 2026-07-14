@@ -25,7 +25,8 @@ with `generated_by: autoreview`:
 
 - **quality** — correctness, regressions, maintainability-as-risk, test
   gaps, contract drift, over-engineering (constitution-mandated structure
-  exempt)
+  exempt); for user-facing diffs touching motion, the `review-animations`
+  skill feeds this lens (harness.yaml `ui_guidance`)
 - **performance** — hot paths, algorithmic complexity, query fanout, I/O
   amplification, memory churn, concurrency bottlenecks; measured evidence
   distinguished from inference

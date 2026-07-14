@@ -144,7 +144,10 @@ python3 .agents/scripts/update_run.py --phase implementing --plan-status approve
 ```
 
 3. **Implement** — say: **"Implement it."** (Codex,
-   `/codex:rescue --background`, one bounded task at a time). The implementer
+   `/codex:rescue --background`, one bounded task at a time). Feature type
+   routes the design skills automatically: `user_facing: true` tasks load
+   `emil-design-eng` (UI polish), plus `apple-design` for gesture/motion work
+   (harness.yaml `ui_guidance`); backend tasks skip them. The implementer
    writes and runs the tests and records the artifact itself:
 
 ```bash

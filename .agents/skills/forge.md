@@ -30,7 +30,7 @@ or route:
 | roadmap missing | run the project-level decomposition (`.agents/prompts/decomposer.md`), then `./forge roadmap import --input <json>` |
 | planning | plan per `.agents/prompts/planner.md` (Claude plan mode default, `planner-high` Codex agent alternate); exploration read-only via Codex |
 | decomposing | run docs-decomposer per task, record with `record_decomposition_from_json.py` (schema incl. `user_facing`) |
-| implementing | delegate the leaf task (Claude: `/codex:rescue --background`; Codex: `.agents/prompts/implementer.md`) — the implementer writes and records the tests |
+| implementing | delegate the leaf task (Claude: `/codex:rescue --background`; Codex: `.agents/prompts/implementer.md`) — the implementer writes and records the tests; user-facing tasks load the harness.yaml `ui_guidance` skills (emil-design-eng, apple-design) |
 | verifying | `python3 .agents/scripts/verify.py` |
 | reviewing | ONE autoreview run in Codex, three lenses (`.agents/prompts/reviewer.md`) |
 | functional-check | only shown when the task is user-facing; run `functional-checker` |
@@ -62,6 +62,7 @@ or route:
 | harness status | read `.factory/run.json`; `forge.py context list --pending`; `ls .agents/skills/proposed/` |
 | is this PR ready | `python3 .agents/scripts/pr_ready.py` (never bypass with ad hoc checks) |
 | mine for skills / retro | follow `.agents/prompts/skill-miner.md` |
+| improve the animations / motion audit | run the `improve-animations` skill (read-only audit → prioritized plans); land its items via `./forge roadmap add` or a task intake — never apply fixes straight from the audit |
 | update a client repo to the latest harness | from the HARNESS clone: `./forge upgrade --target <client-repo>` (clean tree required; review the diff, run the linter + gate tests, commit) |
 
 ## Hard rules

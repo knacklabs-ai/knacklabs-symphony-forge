@@ -22,6 +22,17 @@ Rules:
   Assumptions`, where the dev reviews it before merge and promotes durable
   ones to `docs/decisions/`. An assumption that would *change* the plan's
   scope or acceptance criteria is not an assumption — stop and report instead.
+- **Feature-type guidance (pinned in harness.yaml `ui_guidance`).** Check the
+  recorded decomposition BEFORE writing code:
+  - `user_facing: true` and the task touches UI/components/styling → load the
+    `emil-design-eng` skill first and follow it while implementing.
+  - The task involves gestures, transitions, springs, or any motion → also
+    load `apple-design`; use `animation-vocabulary` to name effects precisely
+    in specs and comments.
+  - `user_facing: false` → skip all of these; do not load design skills for
+    backend work.
+  These are advisory inputs, not recorders — you remain the attested
+  `generated_by` on every artifact.
 - **You own the automated tests.** There is no separate tester subagent:
   write or update tests for the changed behavior, run the scoped test
   commands, and record the artifact yourself — JSON per
