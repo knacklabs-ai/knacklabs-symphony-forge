@@ -1,8 +1,11 @@
-# Implementation default (what /codex:rescue runs): the fast GPT-5.6 tier at
-# deep effort — bounded tasks with approved plans are exactly Luna's shape,
-# xhigh buys the reasoning back. Agents under .codex/agents/ override per-role.
-model = "gpt-5.6-luna"
-model_reasoning_effort = "xhigh"
+# Implementation default (what /codex:rescue runs): the GPT-5.6 flagship at
+# medium effort — bounded tasks with approved plans rarely need more; escalate
+# effort to high for migrations/cross-domain/concurrency/security-sensitive
+# work. Code EXPLORATION uses the overlay profile: `codex exec --profile
+# explore -s read-only` (explore.config.toml — gpt-5.6-terra @ high).
+# Agents under .codex/agents/ override per-role.
+model = "gpt-5.6-sol"
+model_reasoning_effort = "medium"
 plan_mode_reasoning_effort = "high"
 personality = "pragmatic"
 sandbox_mode = "danger-full-access"

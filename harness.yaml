@@ -58,7 +58,7 @@ phases:
   planning:
     owner: "claude-code:plan-mode"
     alternate: "codex:planner-high"
-    exploration: "codex:read-only"
+    exploration: "codex exec --profile explore -s read-only (gpt-5.6-terra @ high) — NEVER Claude Code itself"
     contract: ".agents/prompts/planner.md"
     plan_artifact: "plans/active/<issue>-<slug>.md via forge.py plan save"
     decisions: "docs/decisions/ records BEFORE decomposition is recorded"
@@ -67,8 +67,9 @@ phases:
       agent is the sanctioned alternative when a dev prefers it. Either way
       the contract is identical: same sections (incl. Decisions), same
       forge.py plan save step, same gates. When planning in Claude, delegate
-      ALL codebase exploration to Codex read-only runs (/codex:rescue or
-      `codex exec -s read-only`). Approval is the saved plan file, not a flag.
+      ALL codebase exploration to Codex read-only runs
+      (`codex exec --profile explore -s read-only`, terra @ high).
+      Approval is the saved plan file, not a flag.
   decomposition:
     owner: "codex:docs-decomposer"
     allowed:
@@ -80,8 +81,8 @@ phases:
     notes: "Per-task task graph; records the user_facing flag the ship gate reads."
   implementation:
     owner: "codex:/codex:rescue"
-    model: "gpt-5.6-luna"
-    reasoning: "xhigh"
+    model: "gpt-5.6-sol"
+    reasoning: "medium (escalate effort to high for migrations/cross-domain/security-sensitive)"
     prompts: ".agents/prompts/implementer.md"
     required_skills: # ENFORCED by feature type — the decomposition's user_facing flag:
       # the recorder refuses a user-facing testing artifact unless skills_used

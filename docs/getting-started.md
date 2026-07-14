@@ -157,9 +157,10 @@ parallel devs are parallel branches; `pr_ready.py` archives evidence before
 merge.
 
 1. **Plan** — say: **"Plan this task."** Claude Code plan mode per
-   `.agents/prompts/planner.md` (exploration delegated to Codex read-only;
-   `planner-high` in Codex is the sanctioned alternate). New decisions get
-   records; on approval say: **"Save the plan."**
+   `.agents/prompts/planner.md` — codebase exploration is delegated, never
+   done by Claude Code itself: `codex exec --profile explore -s read-only`
+   (gpt-5.6-terra @ high). `planner-high` in Codex is the sanctioned
+   alternate. New decisions get records; on approval say: **"Save the plan."**
 
 ```bash
 ./forge plan save --from <approved-plan-file>

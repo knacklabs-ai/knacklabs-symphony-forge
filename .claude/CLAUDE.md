@@ -9,14 +9,15 @@ Read `AGENTS.md` first; it is the contract. Standards live in `constitution/`
 - Claude Code coordinates: discovery, planning, decisions, orchestration.
 - Codex executes: exploration, implementation, testing, review.
 - During planning, do NOT grep/read application code yourself — delegate
-  exploration to Codex read-only runs (`/codex:rescue` or
-  `codex exec -s read-only "<question>"`) and plan from the findings.
+  exploration to Codex read-only runs:
+  `codex exec --profile explore -s read-only "<question>"`
+  (gpt-5.6-terra @ high, .codex/explore.config.toml) and plan from the findings.
 
 ## codex-plugin-cc
 
 - Delegate implementation with `/codex:rescue --background` — it runs
-  `gpt-5.6-luna` at `xhigh` reasoning (.codex/config.toml); do not downgrade
-  the effort, and escalate non-bounded tasks to a stronger tier instead.
+  `gpt-5.6-sol` at `medium` reasoning (.codex/config.toml); escalate effort
+  to `high` for migrations/cross-domain/concurrency/security-sensitive work.
 - Review = ONE autoreview run in Codex, three lenses (`.agents/prompts/reviewer.md`).
 - The Stop-hook review gate must stay DISABLED (`/codex:setup --disable-review-gate`).
 - If the plugin is unavailable, follow `docs/degraded-mode.md`.

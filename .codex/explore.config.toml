@@ -1,0 +1,8 @@
+# Exploration profile — `codex exec --profile explore -s read-only "<question>"`.
+# Planning-phase codebase exploration is NEVER done by Claude Code itself
+# (role split, harness.yaml): it runs on the mid GPT-5.6 tier at high effort —
+# thorough reading without flagship cost. Overlays config.toml; only the
+# differing keys live here.
+model = "gpt-5.6-terra"
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"

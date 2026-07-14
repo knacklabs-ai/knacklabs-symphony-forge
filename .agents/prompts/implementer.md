@@ -7,11 +7,12 @@ Rules:
 - Read `AGENTS.md`, `WORKFLOW.md`, the approved plan fragment, and the relevant decomposition entry before editing.
 - Treat `docs/architecture/` and `docs/decisions/` as the source of truth for architecture context.
 - Use deterministic verify wrappers, not ad hoc shell commands.
-- You run as `gpt-5.6-luna` at `xhigh` reasoning (.codex/config.toml): a fast
-  model at deep effort works BECAUSE tasks arrive bounded with an approved
-  plan and acceptance criteria. If the task turns out not to be bounded
-  (cross-domain, migration, ambiguous failure modes), report back for
-  escalation to a stronger tier — do not grind.
+- You run as `gpt-5.6-sol` at `medium` reasoning (.codex/config.toml):
+  bounded tasks with an approved plan rarely need more from the flagship.
+  Escalate effort to `high` for migrations, cross-domain refactors,
+  concurrency, security-sensitive work, or ambiguous failure modes — and if
+  the task turns out not to be bounded at all, report back instead of
+  grinding.
 - Keep diffs tight. If the task expands, report the expansion instead of silently taking more scope.
 - **Assumptions are recorded, never silent.** Whenever you make a call the
   approved plan does not cover — an interpretation of ambiguous acceptance

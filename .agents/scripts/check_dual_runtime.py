@@ -322,6 +322,8 @@ def check_thin_adapter(root: Path) -> None:
             rel = f.relative_to(codex)
             ok = (
                 rel.as_posix() in {"config.toml", "hooks.json"}
+                # Overlay profiles (e.g. explore.config.toml) are config, not substance.
+                or (len(rel.parts) == 1 and rel.name.endswith(".config.toml"))
                 or (rel.parts[0] == "agents" and f.suffix == ".toml")
                 or (
                     len(rel.parts) == 3

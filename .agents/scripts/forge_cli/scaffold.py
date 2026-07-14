@@ -19,7 +19,7 @@ COPY_WORKFLOWS = [
     ".github/workflows/factory-scaffold.yml",
     ".github/workflows/gardener.yml",
 ]
-COPY_CODEX = ["config.toml", "hooks.json"]  # + agents/ and skills/ dirs
+COPY_CODEX = ["config.toml", "explore.config.toml", "hooks.json"]  # + agents/ and skills/ dirs
 COPY_FILES = ["harness.yaml", ".gitignore", ".gitattributes", ".envrc",
               "WORKFLOW.md", "CLAUDE.md", "forge"]
 DOC_CONTRACTS = [

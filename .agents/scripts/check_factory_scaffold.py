@@ -7,6 +7,7 @@ from pathlib import Path
 root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parents[2]
 required = [
     root / '.codex' / 'config.toml',
+    root / '.codex' / 'explore.config.toml',
     root / '.codex' / 'hooks.json',
     root / '.agents' / 'prompts' / 'planner.md',
     root / '.agents' / 'prompts' / 'decomposer.md',

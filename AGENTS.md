@@ -64,8 +64,8 @@ Testing has no separate agent: the implementer writes and records the tests.
 ## Reasoning Defaults
 
 - planning / decomposition / architecture reconciliation: `high`
-- implementation: `gpt-5.6-luna` @ `xhigh` (fast tier, deep effort — tasks
-  arrive bounded; escalate non-bounded work to a stronger tier)
+- code exploration: `gpt-5.6-terra` @ `high` (`codex exec --profile explore`)
+- implementation: `gpt-5.6-sol` @ `medium` (`high` for migrations/cross-domain/security)
 - review and testing agents: explicit per-agent overrides
 
 Do not default the entire repo to `high` reasoning for every task.
