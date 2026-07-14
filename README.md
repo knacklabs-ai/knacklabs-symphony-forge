@@ -7,7 +7,7 @@ CAW's harness for building client applications with **Claude Code coordination**
 One-time machine setup, then everything is conversation:
 
 ```bash
-git clone git@github.com:cawstudios/symphony-forge.git
+git clone git@github.com:knacklabs-ai/knacklabs-symphony-forge.git
 cd symphony-forge && ./setup
 ```
 
