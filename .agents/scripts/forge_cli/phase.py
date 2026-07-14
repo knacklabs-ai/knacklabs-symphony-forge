@@ -34,9 +34,9 @@ def cmd_next(args: argparse.Namespace) -> None:
                      "run: python3 .agents/scripts/intake.py --issue <KEY> --title \"<title>\"")
     elif not state.get("client_signoff"):
         phase("discovery/prototype (0a/0b)")
-        steps.append("Fill docs/product/DISCOVERY.md and BRIEF.md; prototype freely (no ceremony)")
-        steps.append("Capture client decisions: forge.py decision new <slug>")
-        steps.append("When the client confirms: forge.py decision new client-signoff, "
+        steps.append("[PM] Fill docs/product/DISCOVERY.md and BRIEF.md; prototype freely (no ceremony)")
+        steps.append("[PM] Capture client decisions: forge.py decision new <slug>")
+        steps.append("[PM] When the client confirms: forge.py decision new client-signoff, "
                      "then forge.py decision accept client-signoff --by <name> (human), "
                      "then run record_signoff.py")
     elif not state.get("issue_key"):
@@ -45,31 +45,38 @@ def cmd_next(args: argparse.Namespace) -> None:
         pending_items = [i for i in items if i.get("status", "pending") == "pending"]
         if pending_items:
             nxt = pending_items[0]
-            steps.append(f"Next on the roadmap: {nxt['key']} — {nxt['title']}. Start it: "
-                         f"python3 .agents/scripts/intake.py --issue {nxt['key']} "
+            owner = f" (assigned: @{nxt['assignee']})" if nxt.get("assignee") else ""
+            steps.append(f"[dev] Next on the roadmap: {nxt['key']} — {nxt['title']}{owner}. "
+                         f"Start it: python3 .agents/scripts/intake.py --issue {nxt['key']} "
                          f"--title \"{nxt['title']}\"")
+            unassigned = sum(1 for i in pending_items if not i.get("assignee"))
+            if unassigned and (base / "plans" / "team.json").exists():
+                steps.append(f"[EM] {unassigned} pending item(s) unassigned — distribute: "
+                             "./forge roadmap assign <KEY> --to <dev>")
             if len(pending_items) > 1:
                 steps.append(f"({len(pending_items) - 1} more pending — "
                              "./forge roadmap list --pending)")
         elif items:
-            steps.append("Roadmap is fully built or in flight (./forge roadmap list) — "
+            steps.append("[EM] Roadmap is fully built or in flight (./forge roadmap list) — "
                          "extend it, or start an off-roadmap task: "
                          "python3 .agents/scripts/intake.py --issue <KEY> --title \"<title>\"")
         else:
-            steps.append("No plans/roadmap.json yet — record the project backlog at handoff: "
-                         "./forge roadmap import --input <json> "
-                         "(project-level decomposition, .agents/prompts/decomposer.md)")
-            steps.append("Or start a task directly: python3 .agents/scripts/intake.py "
+            steps.append("[PM] Approve the epics: forge.py decision new epics-approved, then "
+                         "a human runs decision accept epics-approved --by <PM>")
+            steps.append("[EM] Then record the backlog: ./forge roadmap import --input <json> "
+                         "(project-level decomposition, .agents/prompts/decomposer.md); "
+                         "distribute with ./forge roadmap assign")
+            steps.append("[dev] Or start a task directly: python3 .agents/scripts/intake.py "
                          "--issue <KEY> --title \"<title>\"")
     elif state.get("plan_status") != "approved":
         phase("planning")
-        steps.append("Plan per .agents/prompts/planner.md — Claude Code plan mode (default, "
+        steps.append("[dev] Plan per .agents/prompts/planner.md — Claude Code plan mode (default, "
                      "exploration via Codex read-only) or the planner-high Codex agent")
-        steps.append("Record new decisions as you go: forge.py decision new <slug>")
-        steps.append("On approval: forge.py plan save --from <plan-file>")
+        steps.append("[dev] Record new decisions as you go: forge.py decision new <slug>")
+        steps.append("[dev] On approval: forge.py plan save --from <plan-file>")
     elif state.get("decomposition_status") != "recorded":
         phase("decomposing")
-        steps.append("Run docs-decomposer (.agents/prompts/decomposer.md), then "
+        steps.append("[dev] Run docs-decomposer (.agents/prompts/decomposer.md), then "
                      "record_decomposition_from_json.py and "
                      "update_run.py --phase implementing --decomposition-status recorded")
     else:
@@ -83,30 +90,30 @@ def cmd_next(args: argparse.Namespace) -> None:
         ]
         if not tests.get("automated"):
             phase("implementing")
-            steps.append("Implement the next bounded leaf task via /codex:rescue --background "
+            steps.append("[dev] Implement the next bounded leaf task via /codex:rescue --background "
                          "(.agents/prompts/implementer.md)")
             if user_facing:
                 steps.append("User-facing task: implementer loads the pinned design skills "
                              "(emil-design-eng; apple-design for gesture/motion work — "
                              "harness.yaml ui_guidance)")
-            steps.append("The implementer writes/runs the tests and records: "
+            steps.append("[dev] The implementer writes/runs the tests and records: "
                          "record_test_from_json.py --kind automated --input <json>")
         elif not verify.get("ok"):
             phase("verifying")
-            steps.append("Run: python3 .agents/scripts/verify.py")
+            steps.append("[dev] Run: python3 .agents/scripts/verify.py")
         elif reviews_missing:
             phase("reviewing")
-            steps.append("Run ONE autoreview pass in Codex, three lenses "
+            steps.append("[dev] Run ONE autoreview pass in Codex, three lenses "
                          f"(.agents/prompts/reviewer.md); still to record: {', '.join(reviews_missing)} "
                          "via record_review_from_json.py")
         elif not tests.get("functional") and user_facing:
             phase("functional-check")
-            steps.append("Task is user-facing: run functional-checker and record: "
+            steps.append("[dev] Task is user-facing: run functional-checker and record: "
                          "record_test_from_json.py --kind functional --input <json>")
         else:
             phase("ready for PR gate")
-            steps.append("Run: python3 .agents/scripts/pr_ready.py (archives the task; merge stays manual)")
-            steps.append("Next task afterwards: pick from ./forge roadmap list --pending, "
+            steps.append("[dev] Run: python3 .agents/scripts/pr_ready.py (archives the task; merge stays manual)")
+            steps.append("[EM] Next task afterwards: pick from ./forge roadmap list --pending, "
                          "then intake.py --issue <KEY> --title \"<title>\"")
     proposed = len(list((base / ".agents" / "skills" / "proposed").glob("*.md")))
     if proposed:

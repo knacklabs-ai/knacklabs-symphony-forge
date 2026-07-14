@@ -51,7 +51,8 @@ choice.
 | 0b prototype | build freely | ponytail (lite) allowed | preserved under `prototype/` |
 | sign-off | "The client signed off" | none — HUMAN runs `decision accept` | `record_signoff.py` → `run.json` |
 | workspace | "Scaffold the workspace" | Codex `/codex:rescue` + `SCAFFOLD_PROMPT.md` | nx workspace |
-| roadmap (handoff) | "Build the project roadmap" | `docs-decomposer` (project-level) | `./forge roadmap import` → `plans/roadmap.json` |
+| epics (PM) | "Build the project roadmap" | `docs-decomposer` proposes; PM accepts `epics-approved` | epics in `plans/roadmap.json`; import gated on the accept |
+| stories + distribution (EM) | "Record the backlog", "assign ENG-101 to alice" | `./forge roadmap import` / `assign` / `team set` | stories w/ acceptance criteria, `@assignee` (roster-checked) |
 | intake | "Start the next task on the roadmap" | `/forge` → `intake.py` | `.factory/run.json` |
 | plan | "Plan this task" | Claude plan mode (or Codex `planner-high`); exploration via Codex read-only | `./forge plan save` → `plans/active/` |
 | decompose | "Decompose it" | `docs-decomposer` | `record_decomposition_from_json.py` (incl. `user_facing`) |

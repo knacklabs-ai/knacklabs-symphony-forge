@@ -36,10 +36,14 @@ phases:
       - "human"
     artifact: "plans/roadmap.json via ./forge roadmap import"
     schema: ".agents/schemas/roadmap.json"
+    roles: "docs/ROLES.md — PM approves epics, EM grooms + assigns, dev picks"
+    gate: "accepted epics-approved decision (PM) — import refuses without it"
     notes: >-
-      The project-level decomposition after sign-off: every feature as a
-      roadmap item in build-wave order. The roadmap survives task cycles;
-      refined by PR (a human edit counts as generated_by: human).
+      The project-level decomposition after sign-off: PM-approved epics and
+      EM-groomed stories (story, acceptance_criteria, skill, assignee) in
+      build-wave order. The roadmap survives task cycles; refined by PR (a
+      human edit counts as generated_by: human). Team roster: plans/team.json
+      (optional; ./forge team set).
   planning:
     owner: "claude-code:plan-mode"
     alternate: "codex:planner-high"

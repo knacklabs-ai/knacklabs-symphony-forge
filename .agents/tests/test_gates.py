@@ -555,7 +555,21 @@ ROADMAP = {"generated_by": "human", "items": [
 ]}
 
 
+def approve_epics(repo: Path) -> None:
+    """The PM->EM handoff gate: an accepted epics-approved decision."""
+    if list((repo / "docs" / "decisions").glob("*epics-approved*.md")):
+        return
+    run(repo, "forge.py", "decision", "new", "epics-approved", "--repo", str(repo))
+    record = next((repo / "docs" / "decisions").glob("*epics-approved*.md"))
+    record.write_text(
+        record.read_text()
+        .replace("status: proposed", "status: accepted")
+        .replace('confirmed_by: ""', 'confirmed_by: "PM"')
+    )
+
+
 def import_roadmap(repo: Path, tmp_path: Path, payload=None) -> tuple[int, str]:
+    approve_epics(repo)
     src = tmp_path / "roadmap-input.json"
     src.write_text(json.dumps(payload if payload is not None else ROADMAP))
     return run(repo, "forge.py", "roadmap", "import", "--input", str(src))
@@ -864,3 +878,69 @@ def test_next_routes_design_skills_by_feature_type(repo, tmp_path):
     decomp_path.write_text(json.dumps(data))
     code, out = run(repo, "forge.py", "next")
     assert code == 0 and "emil-design-eng" not in out
+
+
+# --------------------------------------------------------- roles and handoffs
+
+def test_roadmap_import_gated_on_pm_epics_approval(repo, tmp_path):
+    src = tmp_path / "rm.json"
+    src.write_text(json.dumps(ROADMAP))
+    code, out = run(repo, "forge.py", "roadmap", "import", "--input", str(src))
+    assert code != 0 and "epics-approved" in out  # PM handoff gate
+    approve_epics(repo)
+    code, out = run(repo, "forge.py", "roadmap", "import", "--input", str(src))
+    assert code == 0, out
+
+
+def test_epics_and_story_fields_recorded_and_grouped(repo, tmp_path):
+    code, out = import_roadmap(repo, tmp_path, {
+        "generated_by": "docs-decomposer",
+        "epics": [{"id": "billing", "title": "Billing", "objective": "money in"}],
+        "items": [{"key": "ENG-1", "title": "Invoices", "epic": "billing",
+                   "story": "As an admin, I invoice clients",
+                   "acceptance_criteria": ["PDF generated"], "skill": "backend"}],
+    })
+    assert code == 0 and "1 epic(s) recorded" in out, out
+    data = json.loads((repo / "plans" / "roadmap.json").read_text())
+    assert data["epics"][0]["objective"] == "money in"
+    assert data["items"][0]["acceptance_criteria"] == ["PDF generated"]
+    code, out = run(repo, "forge.py", "roadmap", "list")
+    assert "# Billing" in out and "backend" in out
+    # invalid skill refused
+    code, out = import_roadmap(repo, tmp_path, {
+        "generated_by": "docs-decomposer",
+        "items": [{"key": "ENG-9", "title": "X", "skill": "devops"}],
+    })
+    assert code != 0 and "skill" in out
+
+
+def test_team_roster_and_em_assignment(repo, tmp_path):
+    import_roadmap(repo, tmp_path)
+    # roster validations
+    code, out = run(repo, "forge.py", "team", "set", "alice", "--role", "dev")
+    assert code != 0 and "--skills" in out
+    code, out = run(repo, "forge.py", "team", "set", "alice", "--role", "dev",
+                    "--skills", "frontend,devops")
+    assert code != 0 and "devops" in out
+    code, out = run(repo, "forge.py", "team", "set", "alice", "--role", "dev",
+                    "--skills", "frontend")
+    assert code == 0, out
+    # assignment checked against the roster
+    code, out = run(repo, "forge.py", "roadmap", "assign", "ENG-1", "--to", "mallory")
+    assert code != 0 and "not on the team roster" in out
+    code, out = run(repo, "forge.py", "roadmap", "assign", "ENG-1", "--to", "alice")
+    assert code == 0, out
+    items = roadmap_items(repo)
+    assert items["ENG-1"]["assignee"] == "alice"
+    # assignment survives a re-import (grooming state, like lifecycle)
+    import_roadmap(repo, tmp_path)
+    assert roadmap_items(repo)["ENG-1"]["assignee"] == "alice"
+    # forge next shows the assignee and nags the EM about the unassigned rest
+    sign_off(repo)
+    code, out = run(repo, "forge.py", "next")
+    assert "@alice" in out and "[EM]" in out and "unassigned" in out
+
+
+def test_next_tags_steps_with_roles(repo):
+    code, out = run(repo, "forge.py", "next")
+    assert code == 0 and "[PM]" in out  # discovery is the PM's seat

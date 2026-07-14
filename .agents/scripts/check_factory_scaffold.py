@@ -42,6 +42,7 @@ required = [
     root / 'WORKFLOW.md',
     root / 'docs' / 'FACTORY.md',
     root / 'docs' / 'QUALITY.md',
+    root / 'docs' / 'ROLES.md',
     root / 'docs' / 'product' / 'README.md',
     root / 'docs' / 'product' / 'BRIEF.md',
     root / 'docs' / 'architecture' / 'README.md',

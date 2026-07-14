@@ -18,7 +18,7 @@ It provides:
 
 1. `WORKFLOW.md`
 2. `docs/FACTORY.md`
-3. `docs/QUALITY.md`
+3. `docs/QUALITY.md` and `docs/ROLES.md`
 4. `harness.yaml`
 5. `constitution/README.md`
 6. `docs/product/BRIEF.md`

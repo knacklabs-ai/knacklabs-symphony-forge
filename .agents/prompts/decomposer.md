@@ -41,18 +41,30 @@ Each epic should include:
 ## Project roadmap (handoff only)
 
 When you run at handoff — the first, project-level decomposition after client
-sign-off — also emit the durable backlog: one roadmap item per feature, in
-build-wave (execution) order, and record it:
+sign-off — you are producing the PM→EM handoff: epics for the PM to approve,
+stories for the EM to distribute.
 
-```bash
-./forge roadmap import --input /tmp/roadmap.json
+1. Emit epics + story items in ONE payload (build-wave order = list order):
+
+```json
+{"generated_by": "docs-decomposer",
+ "epics": [{"id": "billing", "title": "Billing", "objective": "...", "source_refs": ["docs/product/BRIEF.md#billing"]}],
+ "items": [{"key": "<ISSUE-KEY>", "title": "...", "epic": "billing",
+            "story": "As a <user>, ...", "acceptance_criteria": ["..."],
+            "skill": "frontend|backend|fullstack"}]}
 ```
 
-Input shape: `{"items": [{"key": "<ISSUE-KEY>", "title": "...", "epic": "<epic id>"}]}` —
-list position is execution order. `plans/roadmap.json` survives every task
-cycle (intake marks items active, pr_ready marks them done, `forge next`
-suggests the next pending one); refine it by PR as planning learns more.
-Per-task decompositions never rewrite the roadmap.
+2. The PM must approve the epics BEFORE the import — relay:
+   `./forge decision new epics-approved` (list the epics), then THE PM runs
+   `./forge decision accept epics-approved --by "<PM>"`.
+3. Then record: `./forge roadmap import --input /tmp/roadmap.json`.
+
+`plans/roadmap.json` survives every task cycle (intake marks items active,
+pr_ready marks them done, the EM assigns with `forge roadmap assign`,
+`forge next` suggests the next pending one); refine it by PR as planning
+learns more. Per-task decompositions never rewrite the roadmap — but the
+per-task PLAN must satisfy the roadmap item's `acceptance_criteria` when
+present, not re-derive them.
 
 Each task should include:
 - `id`

@@ -102,20 +102,36 @@ Say: **"Scaffold the workspace."** The agent hands
 `harness/nestjs-react/SCAFFOLD_PROMPT.md` to Codex to generate the nx
 workspace per `harness/nestjs-react/conventions/` and `constitution/`.
 
-## 7. Record the roadmap (the handoff backlog)
+## 7. Epics, stories, and the team (the role handoffs — see docs/ROLES.md)
 
 Say: **"Build the project roadmap."** The agent runs the project-level
-decomposition (`docs-decomposer`, `.agents/prompts/decomposer.md`) against
-the BRIEF and architecture docs, then records the ordered feature list:
+decomposition (`docs-decomposer`) against the BRIEF and architecture docs,
+producing **epics** (for the PM) and **stories** with acceptance criteria and
+a `skill` tag (for the EM). Then the handoffs, each an artifact plus a gate:
+
+1. **PM approves the epics** (import is refused without this):
 
 ```bash
-./forge roadmap import --input /tmp/roadmap.json   # items in execution order
-./forge roadmap list
+./forge decision new epics-approved
+./forge decision accept epics-approved --by "<PM name>"   # human-typed
+```
+
+2. **EM records and distributes the backlog** — optionally defining the team
+   first so assignment is checked and skill-matched (full-stack devs take
+   anything; specialists take their lane):
+
+```bash
+./forge team set alice --role dev --skills frontend
+./forge team set bob --role dev --skills fullstack
+./forge roadmap import --input /tmp/roadmap.json   # epics + stories, execution order
+./forge roadmap assign ENG-101 --to alice
+./forge roadmap list                               # grouped by epic, shows @assignee
 ```
 
 `plans/roadmap.json` is the durable backlog: intake marks items active,
-`pr_ready.py` marks them done with history links, and "what's next?" always
-knows the next feature. Refine it by PR as planning teaches you more.
+`pr_ready.py` marks them done with history links, assignments survive
+re-imports, and "what's next?" always knows the next story (and nags the EM
+about unassigned ones). Refine it by PR as planning teaches you more.
 
 ## 8. The feature loop
 
@@ -123,7 +139,12 @@ Start each feature with: **"Start the next task on the roadmap."**
 
 ```bash
 python3 .agents/scripts/intake.py --issue ENG-123 --title "Build billing dashboard"
+git checkout -b feat/ENG-123-build-billing-dashboard   # one task per branch (WORKFLOW.md Concurrency)
 ```
+
+Each story lives on its own branch with its own committed `.factory/` state —
+parallel devs are parallel branches; `pr_ready.py` archives evidence before
+merge.
 
 1. **Plan** — say: **"Plan this task."** Claude Code plan mode per
    `.agents/prompts/planner.md` (exploration delegated to Codex read-only;

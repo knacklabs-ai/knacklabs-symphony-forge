@@ -45,9 +45,13 @@ or route:
 | create a new project | `./forge init --name <project> --target <dir>` (or the `knacklabs-new-project` skill) |
 | migrate an existing repo into the harness | `knacklabs-migrate-project` skill — core: `./forge adopt --target <repo>` from the harness clone (clean tree; old AGENTS/CLAUDE preserved to docs/context/) |
 | migrate my gstack history / gstack outputs are on my machine | `./forge gstack migrate` — union-merges ~/.gstack/projects/<slug>/ into the repo's .gstack/ (then commit). Going forward .envrc + `direnv allow` keeps gstack in-repo |
-| what's left to build / show the roadmap | `./forge roadmap list` (`--pending` for what's next) |
-| here's the project backlog / handoff decomposition | `./forge roadmap import --input <json>` |
-| add a feature to the roadmap | `./forge roadmap add <KEY> "<title>" --epic <epic>` |
+| what's left to build / show the roadmap | `./forge roadmap list` (`--pending` for what's next; grouped by epic, shows @assignee) |
+| PM approves the epics | `./forge decision new epics-approved` — THE PM runs the accept; roadmap import is refused without it |
+| here's the project backlog / handoff decomposition | `./forge roadmap import --input <json>` (epics + stories w/ acceptance_criteria + skill) |
+| add a story to the roadmap | `./forge roadmap add <KEY> "<title>" --epic <epic> --skill frontend\|backend\|fullstack` |
+| define the team / who's on this project | `./forge team set <handle> --role dev --skills frontend,backend` (optional roster; `./forge team list`) |
+| assign a story / distribute work (EM) | `./forge roadmap assign <KEY> --to <dev>` — checked against the roster; match story skill to dev skills |
+| who does what / role handoffs | `docs/ROLES.md` — forge next tags every step [PM]/[EM]/[dev] |
 | start a task / new feature | `python3 .agents/scripts/intake.py --issue <KEY> --title "<title>"` — then check `forge.py context list --pending` BEFORE planning |
 | plan is approved | `python3 .agents/scripts/forge.py plan save --from <plan-file>` (plan must follow `.agents/prompts/planner.md`, incl. Decisions section) |
 | record the decomposition | `python3 .agents/scripts/record_decomposition_from_json.py --input <json>`, then `update_run.py --phase implementing --decomposition-status recorded` |

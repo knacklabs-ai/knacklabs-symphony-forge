@@ -13,7 +13,7 @@ import argparse
 from forge_cli import adopt as adopt_mod
 from forge_cli import context as ctx
 from forge_cli import gstack as gstack_mod
-from forge_cli import decisions, doctor, phase, plans, roadmap, scaffold, upgrade
+from forge_cli import decisions, doctor, phase, plans, roadmap, scaffold, team, upgrade
 
 
 def main() -> None:
@@ -81,8 +81,27 @@ def main() -> None:
     p_ra.add_argument("key")
     p_ra.add_argument("title")
     p_ra.add_argument("--epic")
+    p_ra.add_argument("--skill", help="frontend | backend | fullstack")
     p_ra.add_argument("--repo")
     p_ra.set_defaults(func=roadmap.cmd_add)
+    p_ras = rm_sub.add_parser("assign", help="EM distribution: put a dev on a story")
+    p_ras.add_argument("key")
+    p_ras.add_argument("--to", required=True, help="dev handle (checked against plans/team.json)")
+    p_ras.add_argument("--repo")
+    p_ras.set_defaults(func=roadmap.cmd_assign)
+
+    p_team = sub.add_parser("team", help="the optional project roster (plans/team.json)")
+    team_sub = p_team.add_subparsers(dest="team_command", required=True)
+    p_ts = team_sub.add_parser("set", help="add or update a member")
+    p_ts.add_argument("handle")
+    p_ts.add_argument("--role", help="dev | em | pm (default dev)")
+    p_ts.add_argument("--skills", help="comma-separated: frontend,backend or fullstack")
+    p_ts.add_argument("--name")
+    p_ts.add_argument("--repo")
+    p_ts.set_defaults(func=team.cmd_set)
+    p_tl = team_sub.add_parser("list", help="show the roster")
+    p_tl.add_argument("--repo")
+    p_tl.set_defaults(func=team.cmd_list)
 
     p_ctx = sub.add_parser("context", help="track the docs/context inbox")
     ctx_sub = p_ctx.add_subparsers(dest="context_command", required=True)

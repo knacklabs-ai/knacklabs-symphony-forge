@@ -103,16 +103,32 @@ Gates are deterministic and run at phase transitions (`update_run.py`, `record_*
 
 ## Project Roadmap
 
-`plans/roadmap.json` is the durable, ordered backlog — the handoff artifact
-listing every feature left to build and its execution order. It is recorded
-once from the project-level decomposition after sign-off
-(`./forge roadmap import --input <json>`, items in build-wave order) and
-survives every task cycle: task-scoped `.factory/decomposition.json` is
-cleared on each intake, the roadmap never is. Item lifecycle: `pending` →
-`active` (set by intake) → `done` (set by `pr_ready.py`, with a link to
-`.factory/history/<issue>/`). `forge next` suggests the next pending item.
-Scope changes are PR edits to the file — future planning refines the roadmap,
-it does not silently regenerate it.
+`plans/roadmap.json` is the durable, ordered backlog — the role handoff
+artifact (see `docs/ROLES.md`): the PM's epics and the EM's stories, listing
+everything left to build in execution order. It is recorded once from the
+project-level decomposition after sign-off — **gated on an accepted
+`epics-approved` decision (the PM→EM handoff)** — and survives every task
+cycle: task-scoped `.factory/decomposition.json` is cleared on each intake,
+the roadmap never is. Items carry `story`, `acceptance_criteria`, `epic`,
+`skill` (frontend|backend|fullstack), and `assignee` (set by
+`forge roadmap assign`, validated against the optional `plans/team.json`
+roster, preserved across re-imports). Item lifecycle: `pending` → `active`
+(set by intake) → `done` (set by `pr_ready.py`, with a link to
+`.factory/history/<issue>/`). `forge next` suggests the next pending item
+and flags unassigned ones to the EM. Scope changes are PR edits to the
+file — future planning refines the roadmap, it does not silently regenerate
+it; the per-task plan must satisfy the item's `acceptance_criteria`.
+
+## Concurrency — one task per branch
+
+Run state is branch-scoped by decision (docs/decisions): each story gets its
+own branch (intake names it `feat/<key>-<slug>`), carrying its own committed
+`.factory/` state through the loop; `pr_ready.py` archives to
+`.factory/history/<issue>/` before merge, so main only ever accumulates
+history. One active task per branch — parallel devs = parallel branches.
+Roadmap status flips (`active`/`done`) happen on the task branch and merge
+normally; the JSONL stores under `.gstack/` union-merge via the
+`jsonl-append` driver.
 
 ## Task Planning
 Per-task planning runs in Claude Code plan mode by default (exploration

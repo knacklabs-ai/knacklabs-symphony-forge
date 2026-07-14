@@ -7,5 +7,8 @@
     "generated_by": "str",
     "items": "list"
   },
-  "optional": {}
+  "optional": {
+    "epics": "list"
+  },
+  "item_fields_note": "items: key+title required; optional story, acceptance_criteria (list), epic, skill (frontend|backend|fullstack), order. epics: id+title required; optional objective, source_refs. assignee/status are grooming/lifecycle state — never set by import."
 }

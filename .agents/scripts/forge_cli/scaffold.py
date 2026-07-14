@@ -28,6 +28,7 @@ DOC_CONTRACTS = [
     ("docs/decisions/README.md", "docs/decisions/README.md"),
     ("docs/FACTORY.md", "docs/FACTORY.md"),
     ("docs/QUALITY.md", "docs/QUALITY.md"),
+    ("docs/ROLES.md", "docs/ROLES.md"),
     ("docs/harness-philosophy.md", "docs/harness-philosophy.md"),
     ("docs/degraded-mode.md", "docs/degraded-mode.md"),
     ("docs/context/README.md", "docs/context/README.md"),
