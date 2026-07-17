@@ -215,15 +215,27 @@ def check_decision_records(root: Path) -> None:
                 )
             else:
                 try:
-                    body = subprocess.run(
-                        ["git", "log", "--diff-filter=A", "--format=%B", "--", str(record)],
+                    # The trailer belongs on the ACCEPTANCE commit — the one
+                    # that first introduced `status: accepted` — not on the
+                    # commit that added the record as a proposed draft.
+                    shas = subprocess.run(
+                        ["git", "log", "--reverse", "-S", "status: accepted",
+                         "--format=%H", "--", str(record)],
                         cwd=root, capture_output=True, text=True, check=True,
-                    ).stdout
-                    if body.strip() and "Confirmed-by:" not in body:
-                        warnings.append(
-                            f"WARNING: commit adding {record.relative_to(root)} lacks a "
-                            "`Confirmed-by:` trailer (convention-level check)."
-                        )
+                    ).stdout.split()
+                    if shas:
+                        body = subprocess.run(
+                            ["git", "show", "-s", "--format=%B", shas[0]],
+                            cwd=root, capture_output=True, text=True, check=True,
+                        ).stdout
+                        if "Confirmed-by:" not in body:
+                            warnings.append(
+                                f"WARNING: commit {shas[0][:8]} accepting "
+                                f"{record.relative_to(root)} lacks a `Confirmed-by:` "
+                                "trailer (convention-level check)."
+                            )
+                    # No match = the acceptance is not committed yet; nothing
+                    # to verify until it is.
                 except subprocess.CalledProcessError:
                     warnings.append(
                         f"WARNING: git history unavailable for {record.relative_to(root)}; "

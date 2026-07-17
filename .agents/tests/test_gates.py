@@ -1322,3 +1322,27 @@ def test_plan_grill_recorder_stamps_the_active_issue(repo, tmp_path):
     assert code == 0, out
     data = json.loads((repo / ".factory" / "grills" / "plan.json").read_text())
     assert data["issue"] == "ENG-1"
+
+
+def test_trailer_check_targets_the_acceptance_commit(repo):
+    # Proposed draft committed WITHOUT a trailer — that must not warn.
+    run(repo, "forge.py", "decision", "new", "queue-choice", "--repo", str(repo))
+    record = next((repo / "docs" / "decisions").glob("*-queue-choice.md"))
+    record.write_text(record.read_text()
+        .replace("<!-- Why this decision was needed; the forces at play. -->", "Events need a transport.")
+        .replace("<!-- What was decided, in one or two sentences. -->", "Use Redis streams for events.")
+        .replace("<!-- What follows: tradeoffs accepted, doors closed, work implied. -->", "No Kafka ops burden."))
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "draft decision")
+    code, out = run(repo, "check_dual_runtime.py", str(repo))
+    assert code == 0 and "Confirmed-by" not in out
+    # Acceptance committed WITHOUT the trailer -> warning names that commit.
+    run(repo, "forge.py", "decision", "accept", "queue-choice", "--by", "PM")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "accept queue-choice")
+    code, out = run(repo, "check_dual_runtime.py", str(repo))
+    assert code == 0 and "accepting" in out and "Confirmed-by" in out
+    # Same acceptance WITH the trailer -> quiet.
+    git(repo, "commit", "-q", "--amend", "-m", "accept queue-choice", "--trailer", "Confirmed-by: PM")
+    code, out = run(repo, "check_dual_runtime.py", str(repo))
+    assert code == 0 and "Confirmed-by" not in out
