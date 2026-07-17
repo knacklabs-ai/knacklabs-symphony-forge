@@ -38,6 +38,13 @@ Rules:
 - Keep implementation tasks bounded so Codex workers can own disjoint write scopes.
 - If requirements are vague, make them concrete before proposing code changes.
 - Do not start implementation; planning stops at approval.
+- **The plan MUST be grilled before approval — `plan save` refuses without
+  it.** Run the grilling skill (`/grill-me`) against the draft plan — or
+  follow `.agents/prompts/griller.md --gate plan` directly — interrogating it
+  against the story's `acceptance_criteria` (roadmap), accepted decisions,
+  and the architecture docs. Resolve findings into the plan or new decision
+  records, then record:
+  `python3 .agents/scripts/record_grill_from_json.py --gate plan`.
 - Approval means the plan file is in-repo: `python3 .agents/scripts/forge.py
   plan save --from <plan-file>`. `update_run.py` refuses `plan_status approved`
   until it is.

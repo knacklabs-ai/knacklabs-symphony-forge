@@ -85,6 +85,11 @@ def cmd_next(args: argparse.Namespace) -> None:
                      "until the plan is approved (Codex alternative: planner-high; "
                      "exploration: codex exec --profile explore -s read-only)")
         steps.append("[dev] Record new decisions as you go: forge.py decision new <slug>")
+        plan_grill = load_json(factory / "grills" / "plan.json", default={})
+        if plan_grill.get("verdict") != "pass" or plan_grill.get("issue") != state.get("issue_key"):
+            steps.append("[dev] MANDATORY before approval: grill the plan (/grill-me, or "
+                         ".agents/prompts/griller.md --gate plan) and record: "
+                         "record_grill_from_json.py --gate plan — plan save refuses without it")
         steps.append("[dev] On approval: forge.py plan save --from <plan-file>")
     elif state.get("decomposition_status") != "recorded":
         phase("decomposing")

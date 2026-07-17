@@ -62,6 +62,11 @@ phases:
     contract: ".agents/prompts/planner.md"
     plan_artifact: "plans/active/<issue>-<slug>.md via forge.py plan save"
     decisions: "docs/decisions/ records BEFORE decomposition is recorded"
+    grill:
+      contract: ".agents/prompts/griller.md (--gate plan; /grill-me in Claude satisfies it)"
+      allowed: ["griller"]
+      schema: ".agents/schemas/grill.json"
+      gate: "plan save refuses without a fresh, passing, same-issue .factory/grills/plan.json"
     notes: >-
       Claude Code plan mode is the default planner; the planner-high Codex
       agent is the sanctioned alternative when a dev prefers it. Either way

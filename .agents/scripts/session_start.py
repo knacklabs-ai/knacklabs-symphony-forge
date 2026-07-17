@@ -40,6 +40,8 @@ if run_state.get("issue_key"):
             "PLANNING IS MANDATORY: enter PLAN MODE now (shift+tab) and plan per "
             ".agents/prompts/planner.md — the PreToolUse hook blocks product-code "
             "edits and non-read-only codex exec until the plan is saved and approved. "
+            "The plan must be GRILLED before approval (/grill-me; record via "
+            "record_grill_from_json.py --gate plan) — plan save refuses without it. "
             "Codex alternative: the planner-high agent."
         )
 ledger = load_json(root / "docs" / "context" / "ledger.json", default={"files": {}})

@@ -40,7 +40,7 @@ Owns one story at a time, on its own branch (see Concurrency in WORKFLOW.md).
 | You do | You say |
 |---|---|
 | Pick your story | "what's next?" — `forge next` names the next pending item (and its assignee); intake creates your branch |
-| Plan → implement → ship | the feature loop: "Plan this task" → "Implement it" → "Review it" → "Is this PR ready?" — every step is gated and prompt-first (docs/getting-started.md §8) |
+| Plan → implement → ship | the feature loop: "Plan this task" → "Grill me on this plan" (mandatory — `plan save` refuses ungrilled plans) → "Implement it" → "Review it" → "Is this PR ready?" — every step is gated and prompt-first (docs/getting-started.md §8) |
 | Assumptions | "record an assumption" the moment you make a call the plan doesn't cover |
 | Full-stack vs specialist | your roster `skills` say what the EM routes to you; a story's `skill` field says what it needs |
 

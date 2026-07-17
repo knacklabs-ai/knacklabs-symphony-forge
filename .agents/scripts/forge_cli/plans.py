@@ -5,7 +5,9 @@ import argparse
 import datetime
 from pathlib import Path
 
-from factory_lib import dump_json, load_json, now_iso, repo_root, run_state_path, slugify
+from factory_lib import (
+    dump_json, load_json, now_iso, repo_root, require_grill, run_state_path, slugify,
+)
 
 from .common import fail
 from .context import pending_context
@@ -31,6 +33,20 @@ def cmd_save(args: argparse.Namespace) -> None:
     issue = args.issue or state.get("issue_key")
     if not issue:
         fail("no --issue given and no issue_key in .factory/run.json (run intake first)")
+    # Approval requires the plan to have been GRILLED (grill-me / griller.md
+    # --gate plan): fresh, passing, and for THIS task — an ungrilled plan
+    # cannot become the implementation contract.
+    require_grill(
+        base, "plan",
+        ("docs/product/", "docs/decisions/"),
+        ignore_names=("client-signoff", "epics-approved"),
+    )
+    plan_grill = load_json(base / ".factory" / "grills" / "plan.json", default={})
+    if plan_grill.get("issue") != issue:
+        fail(
+            f"the recorded plan grill is for {plan_grill.get('issue')!r}, not {issue!r} — "
+            "grill THIS task's plan (record_grill_from_json.py --gate plan)."
+        )
     source = Path(args.source).expanduser()
     if not source.is_file():
         fail(f"plan source {source} not found — pass the approved plan file via --from")

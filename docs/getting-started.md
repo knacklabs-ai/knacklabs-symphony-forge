@@ -163,7 +163,10 @@ merge.
    delegated, never done by Claude Code itself:
    `codex exec --profile explore -s read-only` (gpt-5.6-terra @ high).
    `planner-high` in Codex is the sanctioned alternate. New decisions get
-   records; on approval say: **"Save the plan."**
+   records. **Before approval, grilling the plan is mandatory** — say:
+   **"Grill me on this plan"** (`/grill-me`); the verdict is recorded
+   (`record_grill_from_json.py --gate plan`) and `plan save` refuses
+   without it. Then say: **"Save the plan."**
 
 ```bash
 ./forge plan save --from <approved-plan-file>

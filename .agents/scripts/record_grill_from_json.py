@@ -16,12 +16,14 @@ import json
 import sys
 from pathlib import Path
 
-from factory_lib import dump_json, head_sha, now_iso, repo_root, validate_payload
+from factory_lib import (
+    dump_json, head_sha, load_json, now_iso, repo_root, run_state_path, validate_payload,
+)
 
 VERDICTS = {"pass", "blocked"}
 
-parser = argparse.ArgumentParser(description="Record a handover grill from structured JSON")
-parser.add_argument("--gate", required=True, choices=["signoff", "epics"])
+parser = argparse.ArgumentParser(description="Record a handover/plan grill from structured JSON")
+parser.add_argument("--gate", required=True, choices=["signoff", "epics", "plan"])
 parser.add_argument("--input", help="Path to grill JSON. If omitted, read from stdin.")
 args = parser.parse_args()
 
@@ -45,6 +47,17 @@ if payload["verdict"] == "pass" and unresolved > 0:
         f"verdict 'pass' with {unresolved} unresolved finding(s) — every gap/contradiction "
         "needs a resolution (doc edit or decision record) or the verdict is 'blocked'."
     )
+if args.gate == "plan":
+    # Plan grills are per task: stamp the active issue so a stale grill from
+    # a previous task can never satisfy this one's plan save.
+    issue = load_json(run_state_path(root), default={}).get("issue_key", "")
+    if not issue:
+        raise SystemExit("no active task (.factory/run.json issue_key) — run intake first")
+    if payload.get("issue") and payload["issue"] != issue:
+        raise SystemExit(
+            f"payload issue {payload['issue']!r} does not match the active task {issue!r}"
+        )
+    payload["issue"] = issue
 payload["recorded_at"] = now_iso()
 payload["commit"] = head_sha(root)
 dest = root / ".factory" / "grills" / f"{args.gate}.json"

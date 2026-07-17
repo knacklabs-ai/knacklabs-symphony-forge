@@ -84,6 +84,13 @@ def intake(repo: Path, key: str = "ENG-1", title: str = "Invoices", *extra: str)
 
 
 def save_plan(repo: Path, tmp_path: Path) -> tuple[int, str]:
+    record_grill(repo, "plan")  # plan approval is grill-gated; refusal tests use save_plan_raw
+    plan = tmp_path / "plan.md"
+    plan.write_text("## Decisions\nNo new decisions\n")
+    return run(repo, "forge.py", "plan", "save", "--from", str(plan))
+
+
+def save_plan_raw(repo: Path, tmp_path: Path) -> tuple[int, str]:
     plan = tmp_path / "plan.md"
     plan.write_text("## Decisions\nNo new decisions\n")
     return run(repo, "forge.py", "plan", "save", "--from", str(plan))
@@ -1255,3 +1262,42 @@ def test_planning_lock_forces_plan_mode(repo, tmp_path):
     code, out = hook(repo, {"tool_name": "Edit", "permission_mode": "default",
                             "tool_input": {"file_path": str(repo / "src" / "app.ts")}})
     assert "deny" not in out
+
+
+# ---------------------------------------------------------------- plan grill
+
+def test_plan_save_requires_a_fresh_same_issue_grill(repo, tmp_path):
+    sign_off(repo)
+    intake(repo)
+    # ungrilled plan -> refused
+    code, out = save_plan_raw(repo, tmp_path)
+    assert code != 0 and "grill" in out.lower()
+    # blocked grill never satisfies the gate
+    record_grill(repo, "plan", verdict="blocked", gaps=["criteria 2 unaddressed"])
+    code, out = save_plan_raw(repo, tmp_path)
+    assert code != 0 and "blocked" in out
+    # passing grill for THIS issue -> save works
+    code, out = record_grill(repo, "plan")
+    assert code == 0, out
+    code, out = save_plan_raw(repo, tmp_path)
+    assert code == 0, out
+    # next task cannot ride the previous task's grill: intake clears it
+    write_passing_artifacts(repo)
+    run(repo, "record_decomposition_from_json.py", stdin=json.dumps(DECOMP))
+    run(repo, "update_run.py", "--decomposition-status", "recorded")
+    run(repo, "pr_ready.py")
+    intake(repo, "ENG-2", "Payments")
+    assert not (repo / ".factory" / "grills" / "plan.json").exists()
+    code, out = save_plan_raw(repo, tmp_path)
+    assert code != 0 and "grill" in out.lower()
+
+
+def test_plan_grill_recorder_stamps_the_active_issue(repo, tmp_path):
+    sign_off(repo)
+    intake(repo)
+    code, out = record_grill(repo, "plan", issue="ENG-9")  # wrong task
+    assert code != 0 and "does not match" in out
+    code, out = record_grill(repo, "plan")
+    assert code == 0, out
+    data = json.loads((repo / ".factory" / "grills" / "plan.json").read_text())
+    assert data["issue"] == "ENG-1"

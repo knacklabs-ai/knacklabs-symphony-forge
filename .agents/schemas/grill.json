@@ -14,7 +14,8 @@
   "optional": {
     "open_items": "list",
     "summary": "str",
-    "questions_asked": "int"
+    "questions_asked": "int",
+    "issue": "str"
   },
   "verdict_note": "verdict: pass | blocked. pass requires zero unresolved blocking gaps/contradictions — every entry in gaps/contradictions must have a matching resolution (a doc edit or decision record) or be explicitly parked in open_items as non-blocking."
 }

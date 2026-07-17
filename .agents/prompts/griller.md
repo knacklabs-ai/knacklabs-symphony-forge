@@ -20,6 +20,15 @@ Two gates, two scopes:
   contradict a decision record, dependency order that can't work
   (build_waves), stories too big for one implementation session, missing
   `skill` tags that will stall distribution.
+- `--gate plan` (dev, before `forge plan save` — EVERY task) — interrogate
+  the draft plan against the roadmap item's `acceptance_criteria`, the
+  active decision corpus (`forge decision list --active`), and
+  `docs/architecture/`. Hunt: acceptance criteria the plan never addresses,
+  scope creep beyond the story, choices missing from the plan's Decisions
+  section, contradictions with accepted decisions, unbounded tasks, a Verify
+  Plan that can't actually falsify the work. In Claude Code the `/grill-me`
+  skill run against the plan satisfies this contract. The payload carries
+  `"issue"`; the recorder stamps it against the active task.
 
 Method:
 
