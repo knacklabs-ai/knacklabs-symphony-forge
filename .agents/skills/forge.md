@@ -28,7 +28,7 @@ or route:
 |---|---|
 | discovery/prototype | gstack `/office-hours` for the discovery conversation; prototype freely |
 | roadmap missing | run the project-level decomposition (`.agents/prompts/decomposer.md`), then `./forge roadmap import --input <json>` |
-| planning | plan per `.agents/prompts/planner.md` (Claude plan mode default, `planner-high` Codex agent alternate); exploration ONLY via `codex exec --profile explore -s read-only` (terra @ high) — never Claude Code itself |
+| planning | plan per `.agents/prompts/planner.md` (Claude plan mode default, `planner-high` Codex agent alternate); exploration ONLY via `/codex:rescue --model gpt-5.6-terra --effort high` (read-only by default) — never Claude Code itself, never raw codex exec |
 | decomposing | run docs-decomposer per task, record with `record_decomposition_from_json.py` (schema incl. `user_facing`) |
 | implementing | delegate the leaf task (Claude: `/codex:rescue --background`; Codex: `.agents/prompts/implementer.md`) — the implementer writes and records the tests; user-facing tasks MUST load + attest emil-design-eng + frontend-design in `skills_used` (recorder-enforced; harness.yaml `required_skills`) |
 | verifying | `python3 .agents/scripts/verify.py` |

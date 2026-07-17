@@ -9,9 +9,10 @@ Read `AGENTS.md` first; it is the contract. Standards live in `constitution/`
 - Claude Code coordinates: discovery, planning, decisions, orchestration.
 - Codex executes: exploration, implementation, testing, review.
 - During planning, do NOT grep/read application code yourself — delegate
-  exploration to Codex read-only runs:
-  `codex exec --profile explore -s read-only "<question>"`
-  (gpt-5.6-terra @ high, .codex/explore.config.toml) and plan from the findings.
+  exploration to Codex:
+  `/codex:rescue --model gpt-5.6-terra --effort high "<question>"`
+  (read-only by default) and plan from the findings. NEVER raw `codex exec` —
+  the hook blocks it; the plugin companion is the only sanctioned runtime.
 
 ## codex-plugin-cc
 
@@ -26,7 +27,7 @@ Read `AGENTS.md` first; it is the contract. Standards live in `constitution/`
 
 - Per-task planning is MANDATORY and happens in PLAN MODE here (contract:
   `.agents/prompts/planner.md`, incl. the mandatory Decisions section); the
-  PreToolUse hook blocks product-code edits and non-read-only codex exec
+  PreToolUse hook blocks product-code edits and writing Codex delegation
   while the task is unplanned — do not fight it, switch to plan mode. Codex
   `planner-high` is the sanctioned alternative — same contract. Approval is
   not real until the plan is in-repo:

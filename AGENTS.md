@@ -64,7 +64,7 @@ Testing has no separate agent: the implementer writes and records the tests.
 ## Reasoning Defaults
 
 - planning / decomposition / architecture reconciliation: `high`
-- code exploration: `gpt-5.6-terra` @ `high` (`codex exec --profile explore`)
+- code exploration: `gpt-5.6-terra` @ `high` (`/codex:rescue`, read-only)
 - implementation: `gpt-5.6-sol` @ `medium` (`high` for migrations/cross-domain/security)
 - review and testing agents: explicit per-agent overrides
 

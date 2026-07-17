@@ -134,7 +134,7 @@ as `plan assume` and decision records).
 
 ## Gating Model
 
-Gates are deterministic and run at phase transitions (`update_run.py`, `record_*` scripts, `pr_ready.py`) and in `pre_tool_use.py` — never on prompt keywords or turn ends. One deliberate exception to "artifact gates only" (decision 0004): **while an active task is unplanned, planning is mandatory and enforced** — the PreToolUse hook blocks product-code edits (Edit/Write) and non-read-only `codex exec` until the plan is saved and approved, telling the dev to switch to PLAN MODE. Planning-phase writes (plans/, docs/, decisions, harness machinery) and read-only exploration stay open. Everything downstream is still enforced at the artifact gates: unapproved work cannot pass verify, testing, review, or `pr_ready.py`.
+Gates are deterministic and run at phase transitions (`update_run.py`, `record_*` scripts, `pr_ready.py`) and in `pre_tool_use.py` — never on prompt keywords or turn ends. One deliberate exception to "artifact gates only" (decision 0004): **while an active task is unplanned, planning is mandatory and enforced** — the PreToolUse hook blocks product-code edits (Edit/Write) and writing Codex delegation until the plan is saved and approved, telling the dev to switch to PLAN MODE. Planning-phase writes (plans/, docs/, decisions, harness machinery) and read-only exploration stay open. Everything downstream is still enforced at the artifact gates: unapproved work cannot pass verify, testing, review, or `pr_ready.py`.
 
 ## Task Graph Rules
 - The planner owns decomposition.
@@ -174,8 +174,8 @@ normally; the JSONL stores under `.gstack/` union-merge via the
 
 ## Task Planning
 Per-task planning runs in Claude Code plan mode by default (exploration
-delegated to Codex: `codex exec --profile explore -s read-only` —
-gpt-5.6-terra @ high, never Claude Code itself); devs may instead use the
+delegated to Codex: `/codex:rescue --model gpt-5.6-terra --effort high` —
+read-only by default, never Claude Code itself, never raw `codex exec`); devs may instead use the
 `planner-high` Codex agent — the contract is identical either way. The plan follows
 `.agents/prompts/planner.md`, including the mandatory **Decisions** section: every choice not derivable from BRIEF,
 architecture, or existing records becomes a `docs/decisions/` record

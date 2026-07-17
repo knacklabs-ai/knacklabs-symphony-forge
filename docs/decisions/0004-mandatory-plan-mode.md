@@ -18,7 +18,7 @@ platform owner overrode that for this one case.
 
 While an active, signed-off task has plan_status != approved, the PreToolUse
 hook DENIES product-code edits (Edit/Write/MultiEdit/NotebookEdit outside
-plans/docs/harness paths) and non-read-only `codex exec`, instructing the
+plans/docs/harness paths) and writing Codex delegation, instructing the
 dev to switch Claude Code to PLAN MODE and plan per planner.md (or use the
 Codex planner-high agent). Read-only exploration and planning-phase writes
 stay open.

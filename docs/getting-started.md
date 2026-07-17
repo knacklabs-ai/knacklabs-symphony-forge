@@ -158,10 +158,11 @@ merge.
 
 1. **Plan (mandatory — enforced)** — say: **"Plan this task."** and switch to
    PLAN MODE (shift+tab). While the task is unplanned, the hook blocks
-   product-code edits and non-read-only `codex exec`, so there is no way to
+   product-code edits and writing Codex delegation, so there is no way to
    "just start coding". Plan per `.agents/prompts/planner.md`; exploration is
    delegated, never done by Claude Code itself:
-   `codex exec --profile explore -s read-only` (gpt-5.6-terra @ high).
+   `/codex:rescue --model gpt-5.6-terra --effort high` (read-only by default;
+   raw `codex exec` is hook-blocked outside degraded mode).
    `planner-high` in Codex is the sanctioned alternate. New decisions get
    records. **Before approval, grilling the plan is mandatory** — say:
    **"Grill me on this plan"** (`/grill-me`); the verdict is recorded

@@ -1,4 +1,7 @@
-# Exploration profile — `codex exec --profile explore -s read-only "<question>"`.
+# Exploration profile — DEGRADED MODE ONLY (docs/degraded-mode.md):
+# FACTORY_DEGRADED=1 codex exec --profile explore -s read-only "<question>".
+# The normal path is /codex:rescue (read-only by default); the hook blocks
+# raw codex exec otherwise.
 # Planning-phase codebase exploration is NEVER done by Claude Code itself
 # (role split, harness.yaml): it runs on the mid GPT-5.6 tier at high effort —
 # thorough reading without flagship cost. Overlays config.toml; only the

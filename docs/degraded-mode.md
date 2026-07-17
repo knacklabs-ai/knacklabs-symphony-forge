@@ -1,13 +1,21 @@
 # Degraded Mode
 
-Use this when `codex-plugin-cc` is unavailable. The coordinator is thinner, but the artifacts and gates do not change.
+Use this ONLY when `codex-plugin-cc` is unavailable. The coordinator is
+thinner, but the artifacts and gates do not change.
+
+**The `FACTORY_DEGRADED=1` marker is mandatory.** The PreToolUse hook blocks
+raw `codex exec` (the sanctioned runtime is `/codex:rescue` → the plugin
+companion); prefixing the command with `FACTORY_DEGRADED=1` is the explicit,
+auditable declaration that you are here because the plugin is down — not a
+convenience bypass. The planning lock still applies: even degraded, writing
+Codex runs are refused while the active task is unplanned.
 
 ## Exploration
 
-Ask read-only questions directly:
+Ask read-only questions directly (the explore profile pins terra @ high):
 
 ```bash
-codex exec -s read-only "What files implement the billing workflow, and what tests cover it?"
+FACTORY_DEGRADED=1 codex exec --profile explore -s read-only "What files implement the billing workflow, and what tests cover it?"
 ```
 
 ## Implementation
@@ -15,7 +23,7 @@ codex exec -s read-only "What files implement the billing workflow, and what tes
 Run Codex with the implementer prompt plus the bounded task text:
 
 ```bash
-codex exec "$(cat .agents/prompts/implementer.md)
+FACTORY_DEGRADED=1 codex exec "$(cat .agents/prompts/implementer.md)
 
 Task:
 Implement the approved leaf task from .factory/decomposition.json."
@@ -43,4 +51,6 @@ Discovery and prototype stay lightweight. Before planning, record accepted clien
 python3 .agents/scripts/record_signoff.py
 ```
 
-After that, keep the normal `.factory` artifacts and run the same gates. Do not bypass `verify.py`, review artifacts, or `pr_ready.py`.
+After that, keep the normal `.factory` artifacts and run the same gates. Do
+not bypass `verify.py`, review artifacts, or `pr_ready.py` — and go back to
+`/codex:rescue` the moment the plugin is available again.

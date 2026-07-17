@@ -1249,19 +1249,44 @@ def test_planning_lock_forces_plan_mode(repo, tmp_path):
     code, out = hook(repo, {"tool_name": "Edit", "permission_mode": "plan",
                             "tool_input": {"file_path": str(repo / "src" / "app.ts")}})
     assert "deny" not in out
-    # implementation delegation blocked; read-only exploration open
+    # raw codex exec is off-contract in ANY phase — route to /codex:rescue
     code, out = hook(repo, {"tool_name": "Bash", "permission_mode": "default",
                             "tool_input": {"command": "codex exec 'implement the thing'"}})
-    assert "deny" in out and "PLAN MODE" in out
+    assert "deny" in out and "codex:rescue" in out
     code, out = hook(repo, {"tool_name": "Bash", "permission_mode": "default",
                             "tool_input": {"command":
-                                           "codex exec --profile explore -s read-only 'map the module'"}})
+                                           "codex exec --profile explore -s read-only 'map it'"}})
+    assert "deny" in out and "codex:rescue" in out
+    # the sanctioned runtime: companion read-only tasks (exploration) pass,
+    # writing delegation is blocked while unplanned
+    companion = "node /x/codex-companion.mjs task --model gpt-5.6-terra 'map the module'"
+    code, out = hook(repo, {"tool_name": "Bash", "permission_mode": "default",
+                            "tool_input": {"command": companion}})
     assert "deny" not in out
+    code, out = hook(repo, {"tool_name": "Bash", "permission_mode": "default",
+                            "tool_input": {"command": companion + " --write"}})
+    assert "deny" in out and "PLAN MODE" in out
+    # degraded mode: read-only exploration passes with the marker; writing
+    # degraded runs are still refused while unplanned
+    code, out = hook(repo, {"tool_name": "Bash", "permission_mode": "default",
+                            "tool_input": {"command":
+                                           "FACTORY_DEGRADED=1 codex exec -s read-only 'map it'"}})
+    assert "deny" not in out
+    code, out = hook(repo, {"tool_name": "Bash", "permission_mode": "default",
+                            "tool_input": {"command": "FACTORY_DEGRADED=1 codex exec 'build it'"}})
+    assert "deny" in out and "PLAN MODE" in out
     # approved plan lifts the lock entirely
     save_plan(repo, tmp_path)
     code, out = hook(repo, {"tool_name": "Edit", "permission_mode": "default",
                             "tool_input": {"file_path": str(repo / "src" / "app.ts")}})
     assert "deny" not in out
+    code, out = hook(repo, {"tool_name": "Bash", "permission_mode": "default",
+                            "tool_input": {"command": companion + " --write"}})
+    assert "deny" not in out
+    # ...but raw codex exec stays off-contract even after approval
+    code, out = hook(repo, {"tool_name": "Bash", "permission_mode": "default",
+                            "tool_input": {"command": "codex exec 'build it'"}})
+    assert "deny" in out and "codex:rescue" in out
 
 
 # ---------------------------------------------------------------- plan grill

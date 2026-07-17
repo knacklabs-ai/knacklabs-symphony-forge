@@ -41,7 +41,7 @@ PLAN_MODE_MSG = (
     "approved and saved. Switch Claude Code to PLAN MODE (shift+tab) and plan per "
     ".agents/prompts/planner.md (or use the Codex planner-high agent), then "
     "`forge.py plan save --from <plan-file>`. Exploration stays available: "
-    "`codex exec --profile explore -s read-only`."
+    "/codex:rescue --model gpt-5.6-terra --effort high (read-only by default)."
 )
 
 
@@ -63,6 +63,18 @@ blocked = [
 for pattern in blocked:
     if re.search(pattern, command):
         deny(f"Blocked by factory policy: {command}")
+
+# Raw `codex exec` bypasses the sanctioned runtime (/codex:rescue -> the
+# plugin companion): no session threading, no background management, no
+# repo-pinned invocation shape. Degraded mode (plugin unavailable) is the
+# one exception — mark it explicitly per docs/degraded-mode.md.
+if "codex exec" in command and "FACTORY_DEGRADED=1" not in command:
+    deny(
+        "Direct `codex exec` is off-contract — invoke Codex through the plugin: "
+        "/codex:rescue [--background] [--write] [--model <m>] [--effort <e>] \"<task>\" "
+        "(read-only unless --write). If codex-plugin-cc is genuinely unavailable, "
+        "follow docs/degraded-mode.md and prefix the command with FACTORY_DEGRADED=1."
+    )
 
 check_bypass = ["pnpm test", "pnpm lint", "pnpm typecheck", "pnpm check:all"]
 if any(token in command for token in check_bypass) and ".agents/scripts/verify.py" not in command:
@@ -98,10 +110,14 @@ if run_state and planning_locked(run_state) and permission_mode != "plan":
             rel = target[len(str(root)):].lstrip("/")
         if rel and not rel.startswith(PLANNING_WRITE_OK) and rel not in PLANNING_WRITE_OK_FILES:
             deny(PLAN_MODE_MSG.format(issue=issue))
-    if tool_name == "Bash" and "codex exec" in command:
-        read_only = "-s read-only" in command or "--profile explore" in command
-        if not read_only:
-            deny(PLAN_MODE_MSG.format(issue=issue))
+    if tool_name == "Bash" and "codex-companion.mjs" in command \
+            and " task" in command and "--write" in command:
+        # Writing delegation during planning = implementation before a plan.
+        deny(PLAN_MODE_MSG.format(issue=issue))
+    if tool_name == "Bash" and "codex exec" in command and "FACTORY_DEGRADED=1" in command \
+            and "read-only" not in command:
+        # Even degraded mode does not implement before a plan.
+        deny(PLAN_MODE_MSG.format(issue=issue))
 
 if run_state and not run_state.get("client_signoff"):
     advancing = any(script in command for script in PHASE_ADVANCING)
