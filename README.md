@@ -1,4 +1,4 @@
-# Symphony
+# Symphony Forge
 
 KnackLabs's process harness for building applications with **Claude Code coordination** and **Codex execution** — from discovery and client sign-off through scaffolding, per-feature delivery, and a self-evolving record of every decision.
 
@@ -7,8 +7,8 @@ KnackLabs's process harness for building applications with **Claude Code coordin
 One-time machine setup, then everything is conversation:
 
 ```bash
-git clone git@github.com:knacklabs-ai/knacklabs-symphony-forge.git
-cd symphony-forge && ./setup
+git clone git@github.com:knacklabs-ai/symphony.git
+cd symphony && ./setup
 ```
 
 Then, in Claude Code:
