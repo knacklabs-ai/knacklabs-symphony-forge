@@ -43,7 +43,7 @@ or route:
 |---|---|
 | set up my machine | `./forge doctor` (`--fix` installs the toolchain; logins stay manual) |
 | create a new project / build a new app | prefer the `knacklabs-new-project` skill; without it: `./forge init --name <project> --target <dir>`, then IN `<dir>`: commit and push to its OWN origin (`gh repo create <org>/<repo> --private --source . --push`), `direnv allow`, and open future sessions there. The app is a fresh unrelated repo — NEVER fork the harness, NEVER `gh repo create --template`, never build the app inside this clone |
-| migrate an existing repo into the harness | `knacklabs-migrate-project` skill — core: `./forge adopt --target <repo>` from the harness clone (clean tree; old AGENTS/CLAUDE preserved to docs/context/) |
+| migrate an existing repo / make this repo symphony-forge ready | `knacklabs-migrate-project` skill — core: `./forge adopt --target <repo>` from the harness clone (clean tree; old AGENTS/CLAUDE preserved to docs/context/; repo keeps its own origin — never fork/merge the harness into it) |
 | migrate my gstack history / gstack outputs are on my machine | `./forge gstack migrate` — union-merges ~/.gstack/projects/<slug>/ into the repo's .gstack/ (then commit). Going forward .envrc + `direnv allow` keeps gstack in-repo |
 | what's left to build / show the roadmap | `./forge roadmap list` (`--pending` for what's next; grouped by epic, shows @assignee) |
 | what can run in parallel / fan out the work | `./forge roadmap parallel` — the unblocked frontier, one `git worktree add` + intake per story; drive each with `/codex:rescue --background`. Fan out WITHIN a task only across disjoint `write_scope` leaf tasks |

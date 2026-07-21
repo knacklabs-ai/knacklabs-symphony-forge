@@ -6,8 +6,10 @@ description: >-
   (forge adopt), sort existing content into prototype/ and docs/context/,
   harvest it into DISCOVERY/BRIEF and decision records, and hand off to the
   factory loop. Invoke when the user says "migrate this repo", "adopt the
-  harness", "bring this project into symphony forge", "harness-ify this
-  repo", or "/knacklabs-migrate-project".
+  harness", "make this repo symphony-forge ready", "make this project
+  harness ready", "bring this project into symphony forge", "harness-ify
+  this repo", or "/knacklabs-migrate-project" — INCLUDING when the session
+  is open inside the symphony-forge clone itself.
 ---
 
 # Migrate an Existing Repo into the Harness
@@ -15,6 +17,18 @@ description: >-
 You are migrating a repo that predates the harness. The mechanical part is
 one deterministic command; your judgment is only for sorting the existing
 content. Never delete existing work — everything moves, nothing vanishes.
+
+**The model (relay it if the user seems unsure):** same as new projects —
+the harness is a vendored dependency, not an ancestor. Adoption COPIES the
+machinery into the existing repo; the repo keeps its own git history and its
+own GitHub origin (never repoint it at the harness, never merge harness
+history in). Later harness improvements arrive via `forge upgrade`
+(machinery-only), reviewed like any PR.
+
+**Find the target first.** If this session is open in the harness clone,
+ask which repo to migrate (a path) — the harness clone itself is never the
+target. If the session is open in some other repo, that repo is the target;
+confirm it in one breath with the prototype-or-production question below.
 
 ## Steps
 
@@ -86,11 +100,20 @@ content. Never delete existing work — everything moves, nothing vanishes.
 
 10. **Hand off.** Run `python3 .agents/scripts/forge.py next`, relay the
     output — from here the repo's own `/forge` skill drives every phase
-    (roadmap next, if features are already known).
+    (roadmap next, if features are already known). Tell the user what
+    adoption armed, in their words: every feature now starts with a grilled
+    plan (plan mode is hook-forced), work runs stage by stage with a local
+    review before every commit, review findings are clustered across tasks
+    so recurring classes become refactor stories instead of repeat fixes,
+    repeated failures become ledgered lessons, and shipping refuses until
+    the evidence gates pass.
 
 ## Rules
 
 - Nothing is deleted; content is MOVED and the diff stays reviewable.
+- The repo keeps its own origin and history. Never fork the harness into
+  it, never merge harness branches, never repoint its remote — `forge
+  adopt` now, `forge upgrade` later, is the only supported relationship.
 - Recorders and gates apply from the moment of adoption — no evidence enters
   `.factory/` except through the schema-validated scripts.
 - Human-only actions stay human: decision accepts, sign-off confirmation.
