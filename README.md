@@ -25,13 +25,14 @@ The `knacklabs-new-project` skill updates the harness, runs `doctor --fix` (inst
       ┌───────────────────────────────────────────────────────────────────────────────────────────────────────┘
       ▼
   per feature (own branch):
-  intake ▶ PLAN MODE (forced) ▶ [GRILL] ▶ plan save ▶ decompose ▶ implement+test ▶ verify ▶ review ▶ [assumptions guided] ▶ PR
-             (Claude)                                  (Codex)     (attested)              (autoreview)      (ship gate)
+  intake ▶ PLAN MODE (forced) ▶ [GRILL] ▶ plan save ▶ decompose ▶ per stage: implement+test ▶ local review ▶ commit ▶ verify ▶ review ▶ [assumptions guided] ▶ PR
+             (Claude)                     (+ surfaces)  (stages)          (Codex, attested)   (until clean)                  (ONE autoreview)     (ship gate)
 ```
 
 - **Before sign-off**: lightweight on purpose — no ceremony, no time-box. Discovery via gstack `/office-hours`; the prototype that earns sign-off is preserved in `prototype/` as the permanent UX reference.
 - **After sign-off**: deterministic gates. Plans live in `plans/`, decisions in `docs/decisions/`, evidence in `.factory/`; `pr_ready.py` archives every shipped task's plan + proof to `plans/completed/` and `.factory/history/`.
 - **Continuously**: dump raw context (client emails, transcripts, notes) into `docs/context/` — dumping is free, tracking is automatic. Say *"process the context dump"* and an agent scans it into the ledger, harvests it into proposed decisions and BRIEF/architecture updates, and marks each file. You can't miss pending context: it greets every session start, tops every `./forge next`, raises a daily `gardener` issue, and **blocks `plan save`** until harvested or explicitly ignored. Dev corrections get mined into proposed skills (`.agents/skills/proposed/`) that humans promote.
+- **The repo learns from itself**: review findings are structured and clustered across tasks (`./forge findings patterns`) — the same class recurring 3+ times triggers a refactor story + invariant decision, never a fourth patch (decision 0005). Repeated failures become lessons (`plans/lessons.jsonl`) that resurface before anyone touches the same paths again (decision 0006). Scope removed deliberately keeps a revisit trigger (`./forge defer`).
 
 Phase ownership — which tool runs which phase — is declared in [`harness.yaml`](harness.yaml).
 
@@ -89,7 +90,8 @@ choice.
 | intake | "Start the next task on the roadmap" | `/forge` → `intake.py` | `.factory/run.json` |
 | plan | "Plan this task" | Claude PLAN MODE — forced by the hook (or Codex `planner-high`); exploration ONLY via `/codex:rescue --model gpt-5.6-terra --effort high`, read-only | grilled plan → `./forge plan save` → `plans/active/` |
 | decompose | "Decompose it" | `docs-decomposer` | `record_decomposition_from_json.py` (incl. `user_facing`) |
-| implement + test | "Implement it" | Codex `/codex:rescue --background` (implementer writes the tests); `user_facing` tasks MUST use `emil-design-eng` + `frontend-design` (attested in `skills_used`, enforced by the recorder) | `record_test_from_json.py --kind automated` |
+| implement + test | "Implement it" / "work the next stage" | Codex `/codex:rescue --background` per stage (implementer writes the tests); `user_facing` tasks MUST use `emil-design-eng` + `frontend-design` (attested in `skills_used`, enforced by the recorder); each stage ends LOCAL autoreview → commit | `./forge stage start/done` → `.factory/stages.json`; `record_test_from_json.py --kind automated` |
+| lessons | "what did we learn about these files?" / "remember this" | none — deterministic ledger | `./forge lesson relevant` / `add` → `plans/lessons.jsonl` (schema-validated, deduped) |
 | verify | "Run verify" | none — deterministic script | `verify.py` → `.factory/verify.json` |
 | review | "Review it" | **autoreview** (ONE Codex run, three lenses) | `record_review_from_json.py` ×3 |
 | functional check | only if `user_facing: true` | `functional-checker` subagent | `record_test_from_json.py --kind functional` |
@@ -97,7 +99,8 @@ choice.
 | guide assumptions (orchestrator) | "review the assumptions" | `./forge assumptions list --open` / `resolve` | `plans/assumptions.md` — ship gate reads it |
 | context dump | drop files in `docs/context/`, then "scan the context" | `/forge` → `./forge context scan` | `docs/context/ledger.json` |
 | context harvest | "Process the context dump" | agent per `harvester.md` → proposed decisions + BRIEF edits | `./forge context mark --harvested\|--ignored` |
-| retro / evolution | "Mine for skills" | agent per `skill-miner.md` + daily `gardener` workflow | proposals in `.agents/skills/proposed/` |
+| retro / evolution | "Mine for skills" / "are we fixing the same thing again?" | agent per `skill-miner.md` (incl. lessons curation) + daily `gardener` workflow; `./forge findings patterns` flags recurring classes | proposals in `.agents/skills/proposed/`; refactor stories (`kind: refactor`, delta-ratcheted) on the roadmap |
+| park scope | "this is out of scope for now" | none — deterministic ledger | `./forge defer add --why --trigger` → `plans/deferrals.md`; `forge next` surfaces open triggers |
 
 ## Structure
 
@@ -112,7 +115,7 @@ symphony-forge/
 ├── docs/                           # Contracts, guides, decisions, context inbox
 ├── harness/nestjs-react/           # Scaffold prompt + stack conventions
 ├── harness.yaml                    # Phase ownership + skill precedence manifest
-├── plans/                          # Active and completed task plans
+├── plans/                          # Task plans + durable ledgers: roadmap, assumptions, lessons, deferrals
 ├── AGENTS.md                       # The agent contract (both runtimes)
 ├── CLAUDE.md                       # Import shim: @AGENTS.md + @.claude/CLAUDE.md
 └── forge                           # Dev entrypoint: ./forge next|init|doctor|decision|plan|context
@@ -126,7 +129,7 @@ symphony-forge/
 - **Evidence is attested, not asserted.** Every artifact carries `generated_by` (allowlist-checked) and `skills_used` (mandatory design skills enforced on user-facing work), stamped to the commit it attests.
 - **Decisions are exhaust, never forms.** Planning forces a Decisions section; harvesting turns raw context into records; humans confirm every `accepted`; replacements go through `--supersedes`, and accepted records must have substance.
 - **Garbage cannot become contract.** Secret/size guards at the inbox, repo budgets in CI, prototype-import ban, gstack noise gitignored, ledgers compacted, rejected proposals remembered.
-- **Evolution is curated.** Recurring corrections become *proposed* skills and constitution PRs; nothing self-activates.
+- **Evolution is curated.** Recurring corrections become *proposed* skills and constitution PRs; nothing self-activates. The fast loop is deterministic: lessons ledger in, relevance out (decision 0006); the slow loop is structural: recurring finding classes escalate to delta-ratcheted refactor stories instead of endless patches (decision 0005).
 - **One owner per phase.** Overlapping skills (gstack `/ship`, ponytail in factory code, nested reviewers) are explicitly disabled in `harness.yaml`.
 
 ## Docs
