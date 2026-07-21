@@ -21,9 +21,11 @@ you what's missing. But this is the shape of the whole system:
 
 ```text
 grill ▶ SIGN-OFF ▶ grill ▶ EPICS ACCEPTED ▶ roadmap+team ▶ per task:
-  PLAN MODE (hook-forced) ▶ grill ▶ plan saved ▶ decompose ▶ implement
-  (rescue-only, tests + design skills attested) ▶ verify ▶ autoreview ▶
-  functional (if user-facing) ▶ assumptions guided ▶ pr_ready ▶ archive
+  PLAN MODE (hook-forced) ▶ grill ▶ plan saved (incl. Surface Impact) ▶
+  decompose (creates the stage tracker) ▶ per stage: implement (rescue-only)
+  ▶ LOCAL autoreview until clean ▶ commit ▶ stage done ▶ … ▶ verify ▶
+  ONE branch autoreview ▶ functional (if user-facing) ▶ assumptions guided ▶
+  pr_ready (stages done + refactor ratchet) ▶ archive
 ```
 
 - Three **grills** (adversarial gaps/contradictions passes): before sign-off,
@@ -38,6 +40,11 @@ grill ▶ SIGN-OFF ▶ grill ▶ EPICS ACCEPTED ▶ roadmap+team ▶ per task:
   recorded assumption and (for user-facing tasks) a functional check.
 - **Hygiene runs continuously**: secrets/oversize refused at the context
   inbox, repo budgets in CI, decision lifecycle + prototype isolation linted.
+- **The repo learns**: recurring review-finding classes surface via
+  `forge findings patterns` (3+ hits ⇒ a refactor story, not a fourth
+  patch); lessons ledger in `plans/lessons.jsonl` (`forge lesson relevant`
+  before work, `forge lesson add` after repeated failures); deferred scope
+  keeps a revisit trigger (`forge defer`).
 
 ---
 

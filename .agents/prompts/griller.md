@@ -26,9 +26,12 @@ Two gates, two scopes:
   `docs/architecture/`. Hunt: acceptance criteria the plan never addresses,
   scope creep beyond the story, choices missing from the plan's Decisions
   section, contradictions with accepted decisions, unbounded tasks, a Verify
-  Plan that can't actually falsify the work. In Claude Code the `/grill-me`
-  skill run against the plan satisfies this contract. The payload carries
-  `"issue"`; the recorder stamps it against the active task.
+  Plan that can't actually falsify the work, a `## Surface Impact` row left
+  implicit (every Deferred / Unchanged-by-design entry needs a reason), and
+  any RECURRING finding class (`./forge findings patterns`) in this story's
+  area the plan neither consolidates nor tripwires. In Claude Code the
+  `/grill-me` skill run against the plan satisfies this contract. The payload
+  carries `"issue"`; the recorder stamps it against the active task.
 
 Method:
 
@@ -39,7 +42,10 @@ Method:
    states.
 3. Every finding lands somewhere real before the verdict: a doc edit, a
    `./forge decision new <slug>` record, or an explicit non-blocking entry
-   in `open_items`. Unresolved blocking findings ⇒ verdict `blocked`.
+   in `open_items`. An `open_items` entry that PARKS scope also gets a
+   deferral row with a revisit trigger (`./forge defer add`) — parked scope
+   without a trigger is scope silently dropped. Unresolved blocking
+   findings ⇒ verdict `blocked`.
 4. Record the outcome (schema: `.agents/schemas/grill.json`,
    `"generated_by": "griller"`):
 

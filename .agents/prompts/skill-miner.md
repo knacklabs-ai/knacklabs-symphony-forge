@@ -19,6 +19,19 @@ A pattern qualifies when it recurred **3+ times** across different tasks:
 the same class of agent mistake corrected by a dev, the same review blocker,
 the same missing convention, the same question answered repeatedly.
 
+## Curate the lessons ledger
+
+`plans/lessons.jsonl` (`forge lesson list`) is raw learn-loop exhaust — curate
+it every mine:
+- **Cluster**: several lessons circling the same rule are one pattern —
+  propose promoting the cluster to a decision record or constitution line
+  (kind: convention-change), then a PR that compacts the ledger rows it
+  replaces.
+- **Retire**: a lesson whose `applies_to` paths no longer exist, or whose
+  rule the constitution now states, is noise — propose its removal.
+- A lesson that keeps being violated despite being ledgered is a candidate
+  for a HARD gate (hook/linter), not another lesson — say so in the proposal.
+
 ## Check the rejection ledger FIRST
 
 Read `.agents/skills/rejected/` before proposing anything. A pattern

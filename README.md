@@ -49,11 +49,19 @@ a command that refuses. In lifecycle order:
 | 5 | **Planning lock** | the active task has an approved, saved plan — until then product-code edits and writing Codex delegation are DENIED, with routing to PLAN MODE | PreToolUse hook (decision 0004 — the one sanctioned keystroke gate) |
 | 6 | **Rescue-only invocation** | always: raw `codex exec` is denied in every phase, no escape hatch — `/codex:rescue` is the runtime | PreToolUse hook |
 | 7 | **Plan grill** | the draft plan survives `/grill-me` vs the story's acceptance criteria + active decisions — same-issue, fresh, `pass` | `forge plan save` |
-| 8 | **Pending context** | every `docs/context/` dump is harvested or explicitly ignored (and scans REFUSE secrets/oversize files outright) | `forge plan save`; `context scan` |
-| 9 | **Schema + generator + skill attestation** | every evidence payload matches its `.agents/schemas/` file: `generated_by` on the allowlist, mandatory design skills attested in `skills_used` on user-facing artifacts | every `record_*` script |
-| 10 | **Assumptions guided** | every `forge plan assume` row for the task is confirmed/promoted by the orchestrator (`fix-needed` keeps blocking) | `pr_ready.py` |
-| 11 | **Ship gate** | approved plan, decomposition, verify OK, tests + 3 reviews ≥ 8 with no blockers, functional when `user_facing`, all evidence commit-stamped, same-commit, fresh | `pr_ready.py` — archives to `.factory/history/`, marks the roadmap item done |
-| 12 | **Hygiene floor** | decision lifecycle intact (supersede links resolve, accepted records have substance), no prototype/ imports, schemas match harness.yaml, repo within size budgets | `check_dual_runtime.py` + `check_repo_budget.py` in CI |
+| 8 | **Surface Impact** | the plan classifies every surface (runtime/API/data/CLI/UI/docs/tests) — Deferred and Unchanged-by-design rows carry reasons | `forge plan save` |
+| 9 | **Pending context** | every `docs/context/` dump is harvested or explicitly ignored (and scans REFUSE secrets/oversize files outright) | `forge plan save`; `context scan` |
+| 10 | **Schema + generator + skill attestation** | every evidence payload matches its `.agents/schemas/` file: `generated_by` on the allowlist, mandatory design skills attested in `skills_used` on user-facing artifacts | every `record_*` script |
+| 11 | **Stage loop** | every decomposition stage ran its loop — order-enforced start, LOCAL autoreview until clean, commit, done | `forge stage start/done`; `pr_ready.py` refuses open stages (decision 0007) |
+| 12 | **Assumptions guided** | every `forge plan assume` row for the task is confirmed/promoted by the orchestrator (`fix-needed` keeps blocking) | `pr_ready.py` |
+| 13 | **Refactor ratchet** | a `kind: refactor` story shows non-positive net product-source line delta — refactors shrink or hold the line | `check_refactor_delta.py` in `pr_ready.py` |
+| 14 | **Ship gate** | approved plan, decomposition, verify OK, tests + 3 reviews ≥ 8 with no blockers, functional when `user_facing`, all evidence commit-stamped, same-commit, fresh | `pr_ready.py` — archives to `.factory/history/`, marks the roadmap item done |
+| 15 | **Hygiene floor** | decision lifecycle intact (supersede links resolve, accepted records have substance), no prototype/ imports, schemas match harness.yaml, repo within size budgets | `check_dual_runtime.py` + `check_repo_budget.py` in CI |
+
+Advisory (surfaced, never blocking): recurring finding classes
+(`forge findings patterns` — 3+ hits of one class ⇒ consolidate via a
+refactor story, decision 0005), matching lessons (`forge lesson relevant`),
+and open deferrals with fired triggers (`forge defer list --open`).
 
 Human-only, always: `decision accept` (sign-off, epics, promotions) — agents
 relay the command and wait.

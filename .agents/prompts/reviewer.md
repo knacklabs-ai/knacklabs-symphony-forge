@@ -30,7 +30,15 @@ Procedure:
      measured evidence from inference.
    - **security** — OWASP-style trust boundaries, authn/authz, secrets,
      injection, data exposure, unsafe defaults, abuse paths.
-3. Record each artifact:
+3. Emit findings STRUCTURED, not as prose strings: each entry in
+   `blocking_findings`/`non_blocking_findings` is
+   `{"category": "<kebab-case defect class>", "area": "<module/dir>",
+   "summary": "<one sentence>"}`. The category is what lets
+   `forge findings patterns` detect the same class recurring across tasks —
+   the trigger for consolidation instead of a fourth patch (WORKFLOW.md
+   "Recurring Findings"). Reuse category slugs you have used before; a
+   renamed class is an undetected class.
+4. Record each artifact:
 
 ```bash
 python3 .agents/scripts/record_review_from_json.py --aspect <quality|performance|security> --input <json>

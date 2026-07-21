@@ -22,6 +22,7 @@ required = [
     root / '.agents' / 'schemas' / 'roadmap.json',
     root / '.agents' / 'schemas' / 'grill.json',
     root / '.agents' / 'schemas' / 'signal.json',
+    root / '.agents' / 'schemas' / 'lesson.json',
     root / '.agents' / 'scripts' / 'record_grill_from_json.py',
     root / '.agents' / 'scripts' / 'verify.py',
     root / '.agents' / 'scripts' / 'record_decomposition_from_json.py',

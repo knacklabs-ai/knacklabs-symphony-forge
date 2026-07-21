@@ -17,7 +17,7 @@ from factory_lib import (
     verify_state_path,
 )
 from forge_cli.assumptions import blocking_for_issue
-from forge_cli.roadmap import mark_status
+from forge_cli.roadmap import load_items, mark_status
 from forge_cli.signal import open_signals, signals_path
 
 # Commits touching only these paths after evidence was recorded do not
@@ -72,6 +72,22 @@ if not plan_files and not (run_state.get("phase") == "pr-ready" and archived_pla
     )
 if not decomposition:
     missing.append(".factory/decomposition.json")
+else:
+    # The stage tracker is the decomposition's execution twin (decision 0007):
+    # every stage must have run its loop (local autoreview -> commit -> done).
+    stages_data = load_json(root / ".factory" / "stages.json", default={})
+    if not stages_data:
+        missing.append(".factory/stages.json (re-record the decomposition — "
+                       "the recorder creates the stage tracker)")
+    else:
+        open_stages = [s["id"] for s in stages_data.get("stages", [])
+                       if s.get("status") != "done"]
+        if open_stages:
+            missing.append(
+                f"stage completion: {', '.join(open_stages)} not done — work each "
+                "stage (forge stage start → local autoreview until clean → commit → "
+                "forge stage done; WORKFLOW.md Stage Loop)"
+            )
 if not verify or not verify.get("ok"):
     missing.append("successful .factory/verify.json")
 # The functional check is owed only to user-facing work; the decomposition's
@@ -96,6 +112,23 @@ for aspect in ("quality", "performance", "security"):
         missing.append(str(path.relative_to(root)))
     elif data.get("score", 0) < 8 or blockers:
         missing.append(f"{aspect} review must be >= 8 with no blockers")
+
+# The refactor ratchet: a refactor-tagged story that GREW product source is
+# not a refactor — it must shrink or hold the line (decision 0005 doctrine).
+story = next((i for i in load_items(root) if i.get("key") == issue_key), None) \
+    if issue_key else None
+if story and story.get("kind") == "refactor":
+    from check_refactor_delta import net_delta, resolve_base
+    ratchet_base = resolve_base(root)
+    if ratchet_base:
+        delta, detail = net_delta(root, ratchet_base)
+        if delta > 0:
+            missing.append(
+                f"refactor ratchet: net product-source delta is +{delta} lines vs "
+                f"{ratchet_base} ({'; '.join(detail[:3])}) — shrink it, or reclassify "
+                "the story by roadmap PR if it genuinely must add code "
+                "(check_refactor_delta.py shows the breakdown)"
+            )
 
 # An unresolved worker signal is an unanswered contradiction — nothing ships
 # over one. The orchestrator resolves (forge signal resolve) and resumes.
@@ -208,9 +241,12 @@ if review_dir(root).is_dir():
 # follow-up from the parallel pilot). History keeps the full record.
 if signals_path(root).exists():
     shutil.copy2(signals_path(root), history / "signals.jsonl")
+stages_file = root / ".factory" / "stages.json"
+if stages_file.exists():
+    shutil.copy2(stages_file, history / "stages.json")
 for artifact in (decomposition_state_path(root), verify_state_path(root),
                  tests_state_path(root), root / ".factory" / "grills" / "plan.json",
-                 signals_path(root)):
+                 signals_path(root), stages_file):
     if artifact.exists():
         artifact.unlink()
 if review_dir(root).is_dir():
@@ -228,6 +264,16 @@ dump_json(run_state_path(root), project_state)
 if mark_status(root, issue_key, "done",
                completed_at=now_iso(), history=f".factory/history/{issue_key}/"):
     print(f"Roadmap: {issue_key} marked done")
+# Advisory, never blocking: a recurring class is usually OLDER than this task,
+# so it routes to a refactor story, not into holding this ship hostage.
+from forge_cli.findings import recurring  # noqa: E402
+recurring_classes = recurring(root)
+if recurring_classes:
+    worst = recurring_classes[0]
+    print(f"WARNING: {len(recurring_classes)} finding class(es) now RECURRING across tasks "
+          f"(e.g. {worst['category']} x{worst['count']}) — design signal: "
+          "./forge findings patterns, then consolidate (refactor story + decision) "
+          "instead of patching it a fourth time.")
 print(f"PR_READY (archived to .factory/history/{issue_key}/, plan moved to plans/completed/, "
       "task-scoped .factory state cleaned)")
 print(f"Now commit the archive — evidence that isn't committed isn't merged:")

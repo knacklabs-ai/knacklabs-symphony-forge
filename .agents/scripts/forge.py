@@ -13,6 +13,10 @@ import argparse
 from forge_cli import adopt as adopt_mod
 from forge_cli import assumptions as assumptions_mod
 from forge_cli import context as ctx
+from forge_cli import deferrals as deferrals_mod
+from forge_cli import findings as findings_mod
+from forge_cli import lessons as lessons_mod
+from forge_cli import stages as stages_mod
 from forge_cli import gstack as gstack_mod
 from forge_cli import signal as signal_mod
 from forge_cli import decisions, doctor, phase, plans, roadmap, scaffold, team, upgrade
@@ -84,6 +88,7 @@ def main() -> None:
     p_ra.add_argument("title")
     p_ra.add_argument("--epic")
     p_ra.add_argument("--skill", help="frontend | backend | fullstack")
+    p_ra.add_argument("--kind", help="feature | refactor (refactor => source-delta ratchet at pr_ready)")
     p_ra.add_argument("--repo")
     p_ra.set_defaults(func=roadmap.cmd_add)
     p_rh = rm_sub.add_parser("heal",
@@ -151,6 +156,67 @@ def main() -> None:
                              help="compact resolved rows from finished tasks to assumptions-archive.md")
     p_aa.add_argument("--repo")
     p_aa.set_defaults(func=assumptions_mod.cmd_archive)
+
+    p_def = sub.add_parser("defer", help="the deferral ledger (plans/deferrals.md)")
+    def_sub = p_def.add_subparsers(dest="defer_command", required=True)
+    p_da = def_sub.add_parser("add", help="ledger deliberately-removed scope with a revisit trigger")
+    p_da.add_argument("item", help="what is being deferred, one sentence")
+    p_da.add_argument("--why", required=True, help="why it is out of scope now")
+    p_da.add_argument("--trigger", required=True, help="the condition that reopens it")
+    p_da.add_argument("--repo")
+    p_da.set_defaults(func=deferrals_mod.cmd_add)
+    p_dls = def_sub.add_parser("list", help="show the ledger")
+    p_dls.add_argument("--open", action="store_true")
+    p_dls.add_argument("--repo")
+    p_dls.set_defaults(func=deferrals_mod.cmd_list)
+    p_dr = def_sub.add_parser("resolve", help="close a deferral (trigger fired or scope killed)")
+    p_dr.add_argument("id", help="e.g. D-0001")
+    p_dr.add_argument("--notes", required=True)
+    p_dr.add_argument("--repo")
+    p_dr.set_defaults(func=deferrals_mod.cmd_resolve)
+
+    p_st = sub.add_parser("stage", help="per-task execution tracker (.factory/stages.json)")
+    st_sub = p_st.add_subparsers(dest="stage_command", required=True)
+    p_ss = st_sub.add_parser("start", help="begin a stage (order-enforced)")
+    p_ss.add_argument("id", help="stage id from the recorded decomposition")
+    p_ss.add_argument("--parallel", action="store_true",
+                      help="skip order enforcement — ONLY for disjoint write scopes")
+    p_ss.add_argument("--repo")
+    p_ss.set_defaults(func=stages_mod.cmd_start)
+    p_sd = st_sub.add_parser("done", help="finish a stage AFTER local autoreview + commit")
+    p_sd.add_argument("id")
+    p_sd.add_argument("--repo")
+    p_sd.set_defaults(func=stages_mod.cmd_done)
+    p_sls = st_sub.add_parser("list", help="show stage progress")
+    p_sls.add_argument("--repo")
+    p_sls.set_defaults(func=stages_mod.cmd_list)
+
+    p_les = sub.add_parser("lesson", help="the durable lessons ledger (plans/lessons.jsonl)")
+    les_sub = p_les.add_subparsers(dest="lesson_command", required=True)
+    p_la = les_sub.add_parser("add", help="ledger a lesson after a repeated failure/review finding")
+    p_la.add_argument("--topic", required=True)
+    p_la.add_argument("--lesson", required=True, help="the lesson itself, one or two sentences")
+    p_la.add_argument("--source", required=True, help="commit sha / review file / signal id")
+    p_la.add_argument("--applies-to", nargs="+", required=True, dest="applies_to",
+                      help="path globs, e.g. src/api/** *.sql")
+    p_la.add_argument("--severity", required=True, help="low | medium | high")
+    p_la.add_argument("--by", required=True, help="recording agent (schema allowlist)")
+    p_la.add_argument("--repo")
+    p_la.set_defaults(func=lessons_mod.cmd_add)
+    p_lr = les_sub.add_parser("relevant", help="lessons matching the files you are about to touch")
+    p_lr.add_argument("--files", nargs="*", help="paths (default: working-tree changes)")
+    p_lr.add_argument("--repo")
+    p_lr.set_defaults(func=lessons_mod.cmd_relevant)
+    p_ll = les_sub.add_parser("list", help="show the whole ledger")
+    p_ll.add_argument("--repo")
+    p_ll.set_defaults(func=lessons_mod.cmd_list)
+
+    p_find = sub.add_parser("findings", help="review-finding pattern detection across tasks")
+    find_sub = p_find.add_subparsers(dest="findings_command", required=True)
+    p_fp = find_sub.add_parser("patterns",
+                               help="cluster recorded findings by class; recurring = refactor signal")
+    p_fp.add_argument("--repo")
+    p_fp.set_defaults(func=findings_mod.cmd_patterns)
 
     p_sig = sub.add_parser("signal", help="worker→orchestrator event channel (.factory/signals.jsonl)")
     sig_sub = p_sig.add_subparsers(dest="signal_command", required=True)

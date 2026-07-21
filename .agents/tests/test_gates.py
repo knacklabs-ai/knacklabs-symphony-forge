@@ -33,6 +33,10 @@ DECOMP = {"status": "recorded", "generated_by": "docs-decomposer",
           "user_facing": True,
           "tasks": [{"id": "T1", "title": "core slice", "write_scope": ["src/"]}]}
 
+# Minimal plan body passing `plan save` content gates (Decisions + Surface Impact)
+PLAN_BODY = ("## Decisions\nNo new decisions\n\n"
+             "## Surface Impact\nAll surfaces: N-A (test plan)\n")
+
 
 def git(repo: Path, *args: str) -> str:
     proc = subprocess.run(["git", *GIT_ID, *args], cwd=repo,
@@ -91,14 +95,14 @@ def intake(repo: Path, key: str = "ENG-1", title: str = "Invoices", *extra: str)
 
 def save_plan(repo: Path, tmp_path: Path) -> tuple[int, str]:
     plan = tmp_path / "plan.md"
-    plan.write_text("## Decisions\nNo new decisions\n")
+    plan.write_text(PLAN_BODY)
     record_grill(repo, "plan", digest_of=plan)  # grill bound to THIS draft
     return run(repo, "forge.py", "plan", "save", "--from", str(plan))
 
 
 def save_plan_raw(repo: Path, tmp_path: Path) -> tuple[int, str]:
     plan = tmp_path / "plan.md"
-    plan.write_text("## Decisions\nNo new decisions\n")
+    plan.write_text(PLAN_BODY)
     return run(repo, "forge.py", "plan", "save", "--from", str(plan))
 
 
@@ -115,6 +119,9 @@ def write_passing_artifacts(repo: Path, commit: str | None = None) -> None:
                        "generated_by": "functional-checker"},
         "commit": sha,
     }))
+    (f / "stages.json").write_text(json.dumps({
+        "issue": "", "stages": [{"id": t["id"], "title": t["title"], "status": "done"}
+                                for t in DECOMP["tasks"]]}))
     (f / "reviews").mkdir(exist_ok=True)
     for aspect in ("quality", "performance", "security"):
         (f / "reviews" / f"{aspect}.json").write_text(
@@ -1322,7 +1329,7 @@ def test_plan_save_requires_a_fresh_same_issue_grill(repo, tmp_path):
     code, out = save_plan_raw(repo, tmp_path)
     assert code != 0 and "grill" in out.lower()
     plan_file = tmp_path / "plan.md"
-    plan_file.write_text("## Decisions\nNo new decisions\n")
+    plan_file.write_text(PLAN_BODY)
     # blocked grill never satisfies the gate
     record_grill(repo, "plan", verdict="blocked", digest_of=plan_file,
                  gaps=["criteria 2 unaddressed"])
@@ -1340,8 +1347,8 @@ def test_plan_save_requires_a_fresh_same_issue_grill(repo, tmp_path):
     code, out = save_plan_raw(repo, tmp_path)
     assert code == 0, out
     # next task cannot ride the previous task's grill: intake clears it
-    write_passing_artifacts(repo)
     run(repo, "record_decomposition_from_json.py", stdin=json.dumps(DECOMP))
+    write_passing_artifacts(repo)
     run(repo, "update_run.py", "--decomposition-status", "recorded")
     run(repo, "pr_ready.py")
     intake(repo, "ENG-2", "Payments")
@@ -1589,3 +1596,184 @@ def test_promoted_assumption_requires_decision_record(repo, tmp_path):
                     "--status", "promoted", "--notes", "durable choice",
                     "--decision", "cache-ttl")
     assert code == 0 and "cache-ttl" in out
+
+
+# ------------------------------------------- self-sustainability loops (0005-0007)
+
+def review_payload(**over):
+    return {"generated_by": "autoreview", "score": 9, "summary": "ok",
+            "blocking_findings": [], "skills_used": ["review-animations"], **over}
+
+
+def test_structured_findings_recorded_and_malformed_refused(repo, tmp_path):
+    sign_off(repo)
+    intake(repo)
+    save_plan(repo, tmp_path)
+    run(repo, "record_decomposition_from_json.py", stdin=json.dumps(DECOMP))
+    # a structured finding missing its category is refused, not stringified
+    code, out = run(repo, "record_review_from_json.py", "--aspect", "quality",
+                    stdin=json.dumps(review_payload(
+                        blocking_findings=[{"summary": "no category"}])))
+    assert code != 0 and "category" in out
+    # a well-formed structured finding survives as an object
+    code, out = run(repo, "record_review_from_json.py", "--aspect", "quality",
+                    stdin=json.dumps(review_payload(non_blocking_findings=[
+                        {"category": "validation-gap", "area": "api",
+                         "summary": "missing bounds check"}])))
+    assert code == 0, out
+    recorded = json.loads((repo / ".factory" / "reviews" / "quality.json").read_text())
+    assert recorded["non_blocking_findings"][0]["category"] == "validation-gap"
+
+
+def test_recurring_finding_class_surfaces_everywhere(repo, tmp_path):
+    # two shipped tasks + the active one all hit the same class -> RECURRING
+    for issue in ("ENG-7", "ENG-8"):
+        d = repo / ".factory" / "history" / issue / "reviews"
+        d.mkdir(parents=True)
+        (d / "quality.json").write_text(json.dumps({"blocking_findings": [
+            {"category": "validation-gap", "area": "api", "summary": "s"}]}))
+    (repo / ".factory" / "reviews").mkdir(exist_ok=True)
+    (repo / ".factory" / "reviews" / "quality.json").write_text(json.dumps(
+        {"blocking_findings": [{"category": "validation-gap", "area": "api",
+                                "summary": "again"}]}))
+    code, out = run(repo, "forge.py", "findings", "patterns")
+    assert code == 0 and "RECURRING x3" in out and "design signal" in out
+    code, out = run(repo, "forge.py", "next")
+    assert code == 0 and "RECURRING" in out
+    # distinct classes below the threshold stay a healthy tail
+    (repo / ".factory" / "reviews" / "quality.json").unlink()
+    code, out = run(repo, "forge.py", "findings", "patterns")
+    assert "RECURRING" not in out and "watch" in out
+
+
+def test_lesson_ledger_validation_dedup_and_relevance(repo):
+    add = ["forge.py", "lesson", "add", "--topic", "orm-n-plus-one",
+           "--lesson", "Batch child fetches in list endpoints",
+           "--source", "abc1234", "--applies-to", "src/api/**",
+           "--severity", "high", "--by", "implementer"]
+    code, out = run(repo, *add)
+    assert code == 0, out
+    # dedup on lesson text
+    code, out = run(repo, *add)
+    assert code != 0 and "already ledgered" in out
+    # unpinned generator refused by the schema
+    code, out = run(repo, "forge.py", "lesson", "add", "--topic", "t",
+                    "--lesson", "x", "--source", "s", "--applies-to", "src/**",
+                    "--severity", "low", "--by", "ponytail")
+    assert code != 0 and "not pinned" in out
+    # bad severity refused
+    code, out = run(repo, "forge.py", "lesson", "add", "--topic", "t",
+                    "--lesson", "y", "--source", "s", "--applies-to", "src/**",
+                    "--severity", "urgent", "--by", "human")
+    assert code != 0 and "severity" in out
+    # relevance is glob-scoped
+    code, out = run(repo, "forge.py", "lesson", "relevant",
+                    "--files", "src/api/users.ts")
+    assert code == 0 and "orm-n-plus-one" in out
+    code, out = run(repo, "forge.py", "lesson", "relevant", "--files", "docs/x.md")
+    assert code == 0 and "orm-n-plus-one" not in out
+    # a merge-artifact line fails loudly instead of dropping knowledge
+    path = repo / "plans" / "lessons.jsonl"
+    path.write_text(path.read_text() + "<<<<<<< HEAD\n")
+    code, out = run(repo, "forge.py", "lesson", "list")
+    assert code != 0 and "merge artifact" in out
+
+
+def test_stage_loop_orders_execution_and_gates_pr_ready(repo, tmp_path):
+    sign_off(repo)
+    intake(repo)
+    save_plan(repo, tmp_path)
+    decomp = {**DECOMP, "tasks": [
+        {"id": "T1", "title": "api", "write_scope": ["src/api/"]},
+        {"id": "T2", "title": "ui", "write_scope": ["src/ui/"]},
+    ]}
+    code, out = run(repo, "record_decomposition_from_json.py", stdin=json.dumps(decomp))
+    assert code == 0 and "stages.json" in out
+    # order enforced: T2 cannot start before T1 is done...
+    code, out = run(repo, "forge.py", "stage", "start", "T2")
+    assert code != 0 and "T1" in out
+    # ...unless the caller asserts disjoint write scopes
+    code, out = run(repo, "forge.py", "stage", "start", "T2", "--parallel")
+    assert code == 0, out
+    # done requires the stage to have actually started
+    code, out = run(repo, "forge.py", "stage", "done", "T1")
+    assert code != 0 and "not active" in out
+    code, out = run(repo, "forge.py", "stage", "start", "T1")
+    assert code == 0, out
+    code, out = run(repo, "forge.py", "stage", "done", "T1")
+    assert code == 0, out
+    # pr_ready refuses while a stage is open
+    write_passing_artifacts(repo)
+    (repo / ".factory" / "stages.json").write_text(json.dumps({
+        "issue": "ENG-1", "stages": [
+            {"id": "T1", "title": "api", "status": "done"},
+            {"id": "T2", "title": "ui", "status": "active"}]}))
+    run(repo, "update_run.py", "--decomposition-status", "recorded")
+    code, out = run(repo, "pr_ready.py")
+    assert code != 0 and "stage completion" in out and "T2" in out
+    # all stages done -> ships, tracker archived and cleaned
+    run(repo, "forge.py", "stage", "done", "T2")
+    code, out = run(repo, "pr_ready.py")
+    assert code == 0, out
+    assert not (repo / ".factory" / "stages.json").exists()
+    assert (repo / ".factory" / "history" / "ENG-1" / "stages.json").exists()
+
+
+def test_plan_save_requires_surface_impact_section(repo, tmp_path):
+    sign_off(repo)
+    intake(repo)
+    plan = tmp_path / "plan.md"
+    plan.write_text("## Decisions\nNo new decisions\n")  # no Surface Impact
+    record_grill(repo, "plan", digest_of=plan)
+    code, out = run(repo, "forge.py", "plan", "save", "--from", str(plan))
+    assert code != 0 and "Surface Impact" in out
+
+
+def test_refactor_ratchet_blocks_growing_refactors(repo, tmp_path):
+    import_roadmap(repo, tmp_path, {"generated_by": "docs-decomposer", "items": [
+        {"key": "REF-1", "title": "Shrink the api layer", "kind": "refactor"},
+    ]})
+    # invalid kind refused at grooming time
+    code, out = run(repo, "forge.py", "roadmap", "add", "X-1", "t", "--kind", "cleanup")
+    assert code != 0 and "kind" in out
+    git(repo, "checkout", "-q", "-b", "feat/REF-1-shrink")
+    intake(repo, "REF-1", "Shrink the api layer")
+    save_plan(repo, tmp_path)
+    (repo / "src").mkdir(exist_ok=True)
+    (repo / "src" / "grew.ts").write_text("line\n" * 40)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat(REF-1): work")
+    run(repo, "record_decomposition_from_json.py", stdin=json.dumps(DECOMP))
+    write_passing_artifacts(repo)
+    run(repo, "update_run.py", "--decomposition-status", "recorded")
+    code, out = run(repo, "pr_ready.py")
+    assert code != 0 and "refactor ratchet" in out and "+40" in out
+    # deleting more than it adds passes the ratchet
+    (repo / "src" / "grew.ts").unlink()
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "refactor(REF-1): actually shrink")
+    write_passing_artifacts(repo)
+    code, out = run(repo, "pr_ready.py")
+    assert code == 0, out
+
+
+def test_deferral_ledger_add_list_resolve_strict(repo):
+    code, out = run(repo, "forge.py", "defer", "add", "profile GC",
+                    "--why", "entangled with scheduler", "--trigger", "")
+    assert code != 0 and "--trigger" in out
+    code, out = run(repo, "forge.py", "defer", "add", "profile GC",
+                    "--why", "entangled with scheduler",
+                    "--trigger", "storage pressure on fleet")
+    assert code == 0 and "D-0001" in out
+    code, out = run(repo, "forge.py", "next")
+    assert "deferred item(s)" in out
+    code, out = run(repo, "forge.py", "defer", "resolve", "D-0001",
+                    "--notes", "back on the roadmap as GC-1")
+    assert code == 0
+    code, out = run(repo, "forge.py", "defer", "list", "--open")
+    assert code == 0 and "D-0001" not in out
+    # malformed row fails loudly
+    path = repo / "plans" / "deferrals.md"
+    path.write_text(path.read_text() + "| D-0002 | broken row |\n")
+    code, out = run(repo, "forge.py", "defer", "list")
+    assert code != 0 and "malformed" in out
