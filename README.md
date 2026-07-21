@@ -4,18 +4,17 @@ KnackLabs's process harness for building applications with **Claude Code coordin
 
 ## Quick Start (devs)
 
-One-time machine setup, then everything is conversation:
+Everything is conversation — setup included. In any Claude Code session, say:
 
-```bash
-git clone git@github.com:knacklabs/symphony-forge.git
-cd symphony-forge && ./setup
-```
+> **"Clone the KnackLabs harness from `github.com/knacklabs/symphony-forge` and run its setup."**
 
-Then, in Claude Code:
+(One time per machine. Prefer a terminal? `git clone git@github.com:knacklabs/symphony-forge.git && cd symphony-forge && ./setup` does the same.)
+
+Then, in a session opened in that clone:
 
 > **"Set up a new KnackLabs project called my-app"**
 
-The `knacklabs-new-project` skill updates the harness, runs `doctor --fix` (installs the toolchain; only logins stay manual), scaffolds the repo with `forge init`, and hands you to the project's own `/forge` skill. From then on, **ask "what now?" in any phase** — `/forge` runs the deterministic `./forge next` engine and routes you (same answer for Codex sessions via `AGENTS.md`). Manual equivalents for every step: [Getting Started](docs/getting-started.md).
+The bootstrap skill updates the harness, checks your machine and installs any missing tooling (only logins stay yours), scaffolds the new repo, asks which GitHub org/repo should own it and pushes it there, then hands you off to work in the new repo. From then on, **ask "what now?" in any phase** — the agent reads the project's recorded state and walks you to the exact next action (Codex sessions get the same answer via `AGENTS.md`). Every step's underlying command lives in [Getting Started](docs/getting-started.md) — the deterministic contract, not something you type.
 
 ## Template, Not Fork — how client repos relate to this one
 
@@ -24,13 +23,16 @@ only thing anyone ever clones is this repo, once per machine, as a tool —
 your application is born as its own repo with its own history:
 
 ```text
-this repo (cloned once, per machine)          your app repo (created by init)
-┌─────────────────────────────┐   forge init  ┌─────────────────────────────┐
-│ the generator + upgrader    │ ─────────────▶│ fresh `git init` — ZERO git │
-│ (./forge init / upgrade)    │  copies ONLY  │ relation to the harness     │
-│                             │  machinery    │ app code, plans, decisions, │
-│ improves over time…         │ ─────────────▶│ evidence: all yours         │
-└─────────────────────────────┘ forge upgrade └─────────────────────────────┘
+this repo (cloned once, per machine)             your app repo (its own repo, its own history)
+┌─────────────────────────────┐  "set up a new  ┌─────────────────────────────┐
+│ the generator + upgrader —  │   project…"     │ born fresh — ZERO git       │
+│ agents run it when you ask  │ ───────────────▶│ relation to the harness     │
+│                             │  copies ONLY    │ app code, plans, decisions, │
+│ improves over time…         │  machinery      │ evidence: all yours         │
+└─────────────────────────────┘ ───────────────▶└─────────────────────────────┘
+                                 "update my-app
+                                  to the latest
+                                  harness"
 ```
 
 - **Create**: open Claude Code in the harness clone and say *"Set up a new
@@ -69,7 +71,7 @@ something you type.
 ```
 
 - **Before sign-off**: lightweight on purpose — no ceremony, no time-box. Discovery via gstack `/office-hours`; the prototype that earns sign-off is preserved in `prototype/` as the permanent UX reference.
-- **After sign-off**: deterministic gates. Plans live in `plans/`, decisions in `docs/decisions/`, evidence in `.factory/`; `pr_ready.py` archives every shipped task's plan + proof to `plans/completed/` and `.factory/history/`.
+- **After sign-off**: deterministic gates. Plans live in `plans/`, decisions in `docs/decisions/`, evidence in `.factory/`; the ship gate archives every shipped task's plan + proof to `plans/completed/` and `.factory/history/`.
 - **Continuously**: dump raw context (client emails, transcripts, notes) into `docs/context/` — dumping is free, tracking is automatic. Say *"process the context dump"* and an agent scans it into the ledger, harvests it into proposed decisions and BRIEF/architecture updates, and marks each file. You can't miss pending context: it greets every session start, tops every *"what now?"*, raises a daily `gardener` issue, and **blocks plan approval** until harvested or explicitly ignored. Dev corrections get mined into proposed skills that humans promote.
 - **The repo learns from itself**: review findings are structured and clustered across tasks — ask *"are we fixing the same thing again?"* and the agent shows which defect classes recur; the same class recurring 3+ times triggers a refactor story + invariant decision, never a fourth patch (decision 0005). Repeated failures become ledgered lessons that resurface before anyone touches the same paths again (decision 0006). Say *"this is out of scope for now"* and the parked scope keeps an explicit revisit trigger instead of vanishing.
 
@@ -77,8 +79,10 @@ Phase ownership — which tool runs which phase — is declared in [`harness.yam
 
 ## The Gates
 
-Every handoff is an artifact plus a deterministic gate; a gate you skipped is
-a command that refuses. In lifecycle order:
+Every handoff is an artifact plus a deterministic gate. You never operate the
+gates — you ask for the next thing, and a skipped gate shows up as the agent
+relaying a refusal that names exactly what's missing. The "Enforced by"
+column describes that machinery. In lifecycle order:
 
 | # | Gate | Refuses until | Enforced by |
 |---|---|---|---|
@@ -104,8 +108,9 @@ refactor story, decision 0005); ledgered lessons — *"what did we learn about
 these files?"*; and parked scope whose trigger fired — *"did any deferral
 come due?"*.
 
-Human-only, always: `decision accept` (sign-off, epics, promotions) — agents
-relay the command and wait.
+Human-only, always: **accepting a decision** (sign-off, epics, promotions) —
+the one command a person types themselves. The agent drafts the record,
+relays the accept command, and waits; it never runs it.
 
 ## Who Runs What (skills by stage)
 
