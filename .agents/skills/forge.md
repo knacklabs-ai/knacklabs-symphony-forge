@@ -42,7 +42,7 @@ or route:
 | Dev says | Do |
 |---|---|
 | set up my machine | `./forge doctor` (`--fix` installs the toolchain; logins stay manual) |
-| create a new project | `./forge init --name <project> --target <dir>` (or the `knacklabs-new-project` skill) |
+| create a new project / build a new app | prefer the `knacklabs-new-project` skill; without it: `./forge init --name <project> --target <dir>`, then IN `<dir>`: commit and push to its OWN origin (`gh repo create <org>/<repo> --private --source . --push`), `direnv allow`, and open future sessions there. The app is a fresh unrelated repo — NEVER fork the harness, NEVER `gh repo create --template`, never build the app inside this clone |
 | migrate an existing repo into the harness | `knacklabs-migrate-project` skill — core: `./forge adopt --target <repo>` from the harness clone (clean tree; old AGENTS/CLAUDE preserved to docs/context/) |
 | migrate my gstack history / gstack outputs are on my machine | `./forge gstack migrate` — union-merges ~/.gstack/projects/<slug>/ into the repo's .gstack/ (then commit). Going forward .envrc + `direnv allow` keeps gstack in-repo |
 | what's left to build / show the roadmap | `./forge roadmap list` (`--pending` for what's next; grouped by epic, shows @assignee) |
@@ -69,6 +69,12 @@ or route:
 | worker hit a contradiction / is confused / blocked / scope shifted | `./forge signal raise --kind <k> --by <agent> -m "..."` then PAUSE — the orchestrator monitors `.factory/signals.jsonl`, resolves, resumes |
 | a worker signal is open (orchestrator) | `./forge signal list --open` → `./forge signal resolve <id> --notes "<answer>"` → resume the rescue. Open signals block pr_ready |
 | review / guide the assumptions (orchestrator) | `./forge assumptions list --open`, then `./forge assumptions resolve <id> --status confirmed\|fix-needed\|promoted --notes "..."` — pr_ready refuses unguided rows |
+| work the next stage / where am I in the task | `./forge stage list` → `./forge stage start <id>` → implement → LOCAL autoreview until clean → commit → `./forge stage done <id>` (WORKFLOW.md Stage Loop) |
+| are we fixing the same thing again | `./forge findings patterns` — a class at 3+ hits gets a refactor story + decision, never a fourth patch |
+| what did we learn about these files | `./forge lesson relevant --files <paths>` — run BEFORE planning/implementing |
+| that mistake keeps happening, remember it | `./forge lesson add --topic <slug> --lesson "..." --source <sha/review> --applies-to <globs> --severity low\|medium\|high --by <agent>` |
+| this is out of scope for now | `./forge defer add "<item>" --why "..." --trigger "<condition that reopens it>"` — parked scope needs a trigger |
+| did any deferral come due | `./forge defer list --open` — resolve fired ones back onto the roadmap (`./forge defer resolve <id> --notes ...`) |
 | record the test results | `python3 .agents/scripts/record_test_from_json.py --kind automated\|functional --input <json>` |
 | run verify / does it build | `python3 .agents/scripts/verify.py` (never bypass with ad hoc commands) |
 | record the review | `python3 .agents/scripts/record_review_from_json.py --aspect quality\|performance\|security --input <json>` |

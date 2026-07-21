@@ -64,6 +64,14 @@ if assumptions_open:
         f"Assumptions awaiting orchestrator guidance: {assumptions_open} "
         "(plans/assumptions.md — `forge.py assumptions list --open`)."
     )
+lessons_file = root / "plans" / "lessons.jsonl"
+if lessons_file.exists():
+    lesson_count = sum(1 for line in lessons_file.read_text().splitlines() if line.strip())
+    if lesson_count:
+        context.append(
+            f"Lessons ledger: {lesson_count} — run `forge lesson relevant` against the "
+            "paths you touch before planning/implementing."
+        )
 proposed = len(list((root / ".agents" / "skills" / "proposed").glob("*.md")))
 if proposed:
     context.append(

@@ -51,6 +51,16 @@ def cmd_save(args: argparse.Namespace) -> None:
             f"the recorded plan grill is for {plan_grill.get('issue')!r}, not {issue!r} — "
             "grill THIS task's plan (record_grill_from_json.py --gate plan)."
         )
+    # Surfaces left implicit are how API/CLI/docs/tests drift ships: the plan
+    # must classify every surface, with a reason on anything not Changed.
+    if "## Surface Impact" not in source.read_text():
+        fail(
+            "the plan has no '## Surface Impact' section. Classify each surface "
+            "(runtime behavior, API, data/schema, CLI/ops, UI, docs, tests) as "
+            "Changed / Read-only / Unchanged by design / Deferred / N-A — "
+            "Deferred and Unchanged-by-design entries need a reason "
+            "(.agents/prompts/planner.md)."
+        )
     title = args.title or state.get("title") or issue
     dest_dir = base / "plans" / "active"
     dest_dir.mkdir(parents=True, exist_ok=True)

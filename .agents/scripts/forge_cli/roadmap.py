@@ -26,6 +26,7 @@ from .common import fail
 # refined roadmap must not resurrect items, un-finish them, or unassign devs.
 LIFECYCLE_FIELDS = {"status", "completed_at", "history", "assignee"}
 ITEM_SKILLS = {"frontend", "backend", "fullstack"}
+ITEM_KINDS = {"feature", "refactor"}
 
 
 def roadmap_path(base: Path) -> Path:
@@ -120,6 +121,11 @@ def check_item(item: dict, pos: int) -> None:
     if skill is not None and (not isinstance(skill, str) or skill not in ITEM_SKILLS):
         fail(f"roadmap item {item['key']}: skill must be one of "
              f"{', '.join(sorted(ITEM_SKILLS))}")
+    kind = item.get("kind")
+    if kind is not None and kind not in ITEM_KINDS:
+        fail(f"roadmap item {item['key']}: kind must be one of "
+             f"{', '.join(sorted(ITEM_KINDS))} — refactor-tagged stories are held to "
+             "the non-positive source-delta ratchet at pr_ready")
     deps = item.get("depends_on")
     if deps is not None:
         if not isinstance(deps, list) or not all(
@@ -272,6 +278,9 @@ def cmd_add(args: argparse.Namespace) -> None:
         if args.skill not in ITEM_SKILLS:
             fail(f"skill must be one of {', '.join(sorted(ITEM_SKILLS))}")
         item["skill"] = args.skill
+    if getattr(args, "kind", None):
+        item["kind"] = args.kind
+        check_item(item, order)
     items.append(item)
     save_roadmap(base, items)
     print(f"Added {args.key} to the roadmap (order {order})")

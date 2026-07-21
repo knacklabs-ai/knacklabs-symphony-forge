@@ -7,7 +7,7 @@ KnackLabs's process harness for building applications with **Claude Code coordin
 One-time machine setup, then everything is conversation:
 
 ```bash
-git clone git@github.com:knacklabs-ai/symphony-forge.git
+git clone git@github.com:knacklabs/symphony-forge.git
 cd symphony-forge && ./setup
 ```
 
@@ -17,6 +17,44 @@ Then, in Claude Code:
 
 The `knacklabs-new-project` skill updates the harness, runs `doctor --fix` (installs the toolchain; only logins stay manual), scaffolds the repo with `forge init`, and hands you to the project's own `/forge` skill. From then on, **ask "what now?" in any phase** — `/forge` runs the deterministic `./forge next` engine and routes you (same answer for Codex sessions via `AGENTS.md`). Manual equivalents for every step: [Getting Started](docs/getting-started.md).
 
+## Template, Not Fork — how client repos relate to this one
+
+The harness is a **dependency you vendor, not an ancestor you fork**. The
+only thing anyone ever clones is this repo, once per machine, as a tool —
+your application is born as its own repo with its own history:
+
+```text
+this repo (cloned once, per machine)          your app repo (created by init)
+┌─────────────────────────────┐   forge init  ┌─────────────────────────────┐
+│ the generator + upgrader    │ ─────────────▶│ fresh `git init` — ZERO git │
+│ (./forge init / upgrade)    │  copies ONLY  │ relation to the harness     │
+│                             │  machinery    │ app code, plans, decisions, │
+│ improves over time…         │ ─────────────▶│ evidence: all yours         │
+└─────────────────────────────┘ forge upgrade └─────────────────────────────┘
+```
+
+- **Create**: clone the harness → say *"Set up a new KnackLabs project called
+  my-app"* (or `./forge init --name my-app --target ../my-app`) → a new,
+  git-initialized repo appears beside the harness → push it to its OWN
+  GitHub repo (`git remote add origin …`). The app is then built *inside
+  that repo* — the harness clone is never where app code lives.
+- **Upgrade**: when this template improves, nothing is merged or pulled into
+  the app. From the harness clone: *"update my-app to the latest harness"*
+  (`./forge upgrade --target ../my-app`). It rewrites ONLY the machinery
+  paths (`.agents/`, `.claude/`, `.codex/`, `constitution/`, `harness/`,
+  `forge`, `harness.yaml`, `WORKFLOW.md`), refuses a dirty tree, and never
+  touches app code, `plans/`, `docs/`, or `.factory/` — review the diff in
+  the app repo like any PR.
+- **Never**: `git fork` (shared history means every upgrade is a merge into
+  your app code, and the harness's own run state collides with yours) or
+  `gh repo create --template` (clean copy once, but NO upgrade path ever —
+  and it drags this repo's plans, history, and evidence along).
+
+Everything above works as natural language too: clone the harness, open
+Claude Code in it, and say what you want — the skills route to the same
+deterministic commands ([Getting Started](docs/getting-started.md) shows
+both forms for every step).
+
 ## The Lifecycle
 
 ```text
@@ -25,13 +63,14 @@ The `knacklabs-new-project` skill updates the harness, runs `doctor --fix` (inst
       ┌───────────────────────────────────────────────────────────────────────────────────────────────────────┘
       ▼
   per feature (own branch):
-  intake ▶ PLAN MODE (forced) ▶ [GRILL] ▶ plan save ▶ decompose ▶ implement+test ▶ verify ▶ review ▶ [assumptions guided] ▶ PR
-             (Claude)                                  (Codex)     (attested)              (autoreview)      (ship gate)
+  intake ▶ PLAN MODE (forced) ▶ [GRILL] ▶ plan save ▶ decompose ▶ per stage: implement+test ▶ local review ▶ commit ▶ verify ▶ review ▶ [assumptions guided] ▶ PR
+             (Claude)                     (+ surfaces)  (stages)          (Codex, attested)   (until clean)                  (ONE autoreview)     (ship gate)
 ```
 
 - **Before sign-off**: lightweight on purpose — no ceremony, no time-box. Discovery via gstack `/office-hours`; the prototype that earns sign-off is preserved in `prototype/` as the permanent UX reference.
 - **After sign-off**: deterministic gates. Plans live in `plans/`, decisions in `docs/decisions/`, evidence in `.factory/`; `pr_ready.py` archives every shipped task's plan + proof to `plans/completed/` and `.factory/history/`.
 - **Continuously**: dump raw context (client emails, transcripts, notes) into `docs/context/` — dumping is free, tracking is automatic. Say *"process the context dump"* and an agent scans it into the ledger, harvests it into proposed decisions and BRIEF/architecture updates, and marks each file. You can't miss pending context: it greets every session start, tops every `./forge next`, raises a daily `gardener` issue, and **blocks `plan save`** until harvested or explicitly ignored. Dev corrections get mined into proposed skills (`.agents/skills/proposed/`) that humans promote.
+- **The repo learns from itself**: review findings are structured and clustered across tasks (`./forge findings patterns`) — the same class recurring 3+ times triggers a refactor story + invariant decision, never a fourth patch (decision 0005). Repeated failures become lessons (`plans/lessons.jsonl`) that resurface before anyone touches the same paths again (decision 0006). Scope removed deliberately keeps a revisit trigger (`./forge defer`).
 
 Phase ownership — which tool runs which phase — is declared in [`harness.yaml`](harness.yaml).
 
@@ -49,11 +88,19 @@ a command that refuses. In lifecycle order:
 | 5 | **Planning lock** | the active task has an approved, saved plan — until then product-code edits and writing Codex delegation are DENIED, with routing to PLAN MODE | PreToolUse hook (decision 0004 — the one sanctioned keystroke gate) |
 | 6 | **Rescue-only invocation** | always: raw `codex exec` is denied in every phase, no escape hatch — `/codex:rescue` is the runtime | PreToolUse hook |
 | 7 | **Plan grill** | the draft plan survives `/grill-me` vs the story's acceptance criteria + active decisions — same-issue, fresh, `pass` | `forge plan save` |
-| 8 | **Pending context** | every `docs/context/` dump is harvested or explicitly ignored (and scans REFUSE secrets/oversize files outright) | `forge plan save`; `context scan` |
-| 9 | **Schema + generator + skill attestation** | every evidence payload matches its `.agents/schemas/` file: `generated_by` on the allowlist, mandatory design skills attested in `skills_used` on user-facing artifacts | every `record_*` script |
-| 10 | **Assumptions guided** | every `forge plan assume` row for the task is confirmed/promoted by the orchestrator (`fix-needed` keeps blocking) | `pr_ready.py` |
-| 11 | **Ship gate** | approved plan, decomposition, verify OK, tests + 3 reviews ≥ 8 with no blockers, functional when `user_facing`, all evidence commit-stamped, same-commit, fresh | `pr_ready.py` — archives to `.factory/history/`, marks the roadmap item done |
-| 12 | **Hygiene floor** | decision lifecycle intact (supersede links resolve, accepted records have substance), no prototype/ imports, schemas match harness.yaml, repo within size budgets | `check_dual_runtime.py` + `check_repo_budget.py` in CI |
+| 8 | **Surface Impact** | the plan classifies every surface (runtime/API/data/CLI/UI/docs/tests) — Deferred and Unchanged-by-design rows carry reasons | `forge plan save` |
+| 9 | **Pending context** | every `docs/context/` dump is harvested or explicitly ignored (and scans REFUSE secrets/oversize files outright) | `forge plan save`; `context scan` |
+| 10 | **Schema + generator + skill attestation** | every evidence payload matches its `.agents/schemas/` file: `generated_by` on the allowlist, mandatory design skills attested in `skills_used` on user-facing artifacts | every `record_*` script |
+| 11 | **Stage loop** | every decomposition stage ran its loop — order-enforced start, LOCAL autoreview until clean, commit, done | `forge stage start/done`; `pr_ready.py` refuses open stages (decision 0007) |
+| 12 | **Assumptions guided** | every `forge plan assume` row for the task is confirmed/promoted by the orchestrator (`fix-needed` keeps blocking) | `pr_ready.py` |
+| 13 | **Refactor ratchet** | a `kind: refactor` story shows non-positive net product-source line delta — refactors shrink or hold the line | `check_refactor_delta.py` in `pr_ready.py` |
+| 14 | **Ship gate** | approved plan, decomposition, verify OK, tests + 3 reviews ≥ 8 with no blockers, functional when `user_facing`, all evidence commit-stamped, same-commit, fresh | `pr_ready.py` — archives to `.factory/history/`, marks the roadmap item done |
+| 15 | **Hygiene floor** | decision lifecycle intact (supersede links resolve, accepted records have substance), no prototype/ imports, schemas match harness.yaml, repo within size budgets | `check_dual_runtime.py` + `check_repo_budget.py` in CI |
+
+Advisory (surfaced, never blocking): recurring finding classes
+(`forge findings patterns` — 3+ hits of one class ⇒ consolidate via a
+refactor story, decision 0005), matching lessons (`forge lesson relevant`),
+and open deferrals with fired triggers (`forge defer list --open`).
 
 Human-only, always: `decision accept` (sign-off, epics, promotions) — agents
 relay the command and wait.
@@ -81,7 +128,8 @@ choice.
 | intake | "Start the next task on the roadmap" | `/forge` → `intake.py` | `.factory/run.json` |
 | plan | "Plan this task" | Claude PLAN MODE — forced by the hook (or Codex `planner-high`); exploration ONLY via `/codex:rescue --model gpt-5.6-terra --effort high`, read-only | grilled plan → `./forge plan save` → `plans/active/` |
 | decompose | "Decompose it" | `docs-decomposer` | `record_decomposition_from_json.py` (incl. `user_facing`) |
-| implement + test | "Implement it" | Codex `/codex:rescue --background` (implementer writes the tests); `user_facing` tasks MUST use `emil-design-eng` + `frontend-design` (attested in `skills_used`, enforced by the recorder) | `record_test_from_json.py --kind automated` |
+| implement + test | "Implement it" / "work the next stage" | Codex `/codex:rescue --background` per stage (implementer writes the tests); `user_facing` tasks MUST use `emil-design-eng` + `frontend-design` (attested in `skills_used`, enforced by the recorder); each stage ends LOCAL autoreview → commit | `./forge stage start/done` → `.factory/stages.json`; `record_test_from_json.py --kind automated` |
+| lessons | "what did we learn about these files?" / "remember this" | none — deterministic ledger | `./forge lesson relevant` / `add` → `plans/lessons.jsonl` (schema-validated, deduped) |
 | verify | "Run verify" | none — deterministic script | `verify.py` → `.factory/verify.json` |
 | review | "Review it" | **autoreview** (ONE Codex run, three lenses) | `record_review_from_json.py` ×3 |
 | functional check | only if `user_facing: true` | `functional-checker` subagent | `record_test_from_json.py --kind functional` |
@@ -89,7 +137,8 @@ choice.
 | guide assumptions (orchestrator) | "review the assumptions" | `./forge assumptions list --open` / `resolve` | `plans/assumptions.md` — ship gate reads it |
 | context dump | drop files in `docs/context/`, then "scan the context" | `/forge` → `./forge context scan` | `docs/context/ledger.json` |
 | context harvest | "Process the context dump" | agent per `harvester.md` → proposed decisions + BRIEF edits | `./forge context mark --harvested\|--ignored` |
-| retro / evolution | "Mine for skills" | agent per `skill-miner.md` + daily `gardener` workflow | proposals in `.agents/skills/proposed/` |
+| retro / evolution | "Mine for skills" / "are we fixing the same thing again?" | agent per `skill-miner.md` (incl. lessons curation) + daily `gardener` workflow; `./forge findings patterns` flags recurring classes | proposals in `.agents/skills/proposed/`; refactor stories (`kind: refactor`, delta-ratcheted) on the roadmap |
+| park scope | "this is out of scope for now" | none — deterministic ledger | `./forge defer add --why --trigger` → `plans/deferrals.md`; `forge next` surfaces open triggers |
 
 ## Structure
 
@@ -104,7 +153,7 @@ symphony-forge/
 ├── docs/                           # Contracts, guides, decisions, context inbox
 ├── harness/nestjs-react/           # Scaffold prompt + stack conventions
 ├── harness.yaml                    # Phase ownership + skill precedence manifest
-├── plans/                          # Active and completed task plans
+├── plans/                          # Task plans + durable ledgers: roadmap, assumptions, lessons, deferrals
 ├── AGENTS.md                       # The agent contract (both runtimes)
 ├── CLAUDE.md                       # Import shim: @AGENTS.md + @.claude/CLAUDE.md
 └── forge                           # Dev entrypoint: ./forge next|init|doctor|decision|plan|context
@@ -118,7 +167,7 @@ symphony-forge/
 - **Evidence is attested, not asserted.** Every artifact carries `generated_by` (allowlist-checked) and `skills_used` (mandatory design skills enforced on user-facing work), stamped to the commit it attests.
 - **Decisions are exhaust, never forms.** Planning forces a Decisions section; harvesting turns raw context into records; humans confirm every `accepted`; replacements go through `--supersedes`, and accepted records must have substance.
 - **Garbage cannot become contract.** Secret/size guards at the inbox, repo budgets in CI, prototype-import ban, gstack noise gitignored, ledgers compacted, rejected proposals remembered.
-- **Evolution is curated.** Recurring corrections become *proposed* skills and constitution PRs; nothing self-activates.
+- **Evolution is curated.** Recurring corrections become *proposed* skills and constitution PRs; nothing self-activates. The fast loop is deterministic: lessons ledger in, relevance out (decision 0006); the slow loop is structural: recurring finding classes escalate to delta-ratcheted refactor stories instead of endless patches (decision 0005).
 - **One owner per phase.** Overlapping skills (gstack `/ship`, ponytail in factory code, nested reviewers) are explicitly disabled in `harness.yaml`.
 
 ## Docs

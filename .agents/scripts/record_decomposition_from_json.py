@@ -41,7 +41,12 @@ for pos, task in enumerate(tasks, 1):
         )
 payload["commit"] = head_sha(root)
 dump_json(decomposition_state_path(root), payload)
+# The decomposition is immutable evidence; the stage tracker is its mutable
+# execution twin (decision 0007) — pr_ready refuses while stages are open.
+from forge_cli.stages import write_skeleton  # noqa: E402
+write_skeleton(root, state.get("issue_key", ""), tasks)
 state["decomposition_status"] = "recorded"
 state["updated_at"] = now_iso()
 dump_json(run_state_path(root), state)
-print("Recorded decomposition")
+print(f"Recorded decomposition ({len(tasks)} stage(s) -> .factory/stages.json; "
+      "work them with `forge stage start/done`)")

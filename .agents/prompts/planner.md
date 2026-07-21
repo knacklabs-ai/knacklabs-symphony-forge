@@ -18,9 +18,20 @@ Output exactly these sections:
 3. Acceptance Criteria
 4. Technical Approach
 5. Decisions
-6. Task Decomposition
-7. Risks
-8. Verify Plan
+6. Surface Impact
+7. Task Decomposition
+8. Risks
+9. Verify Plan
+
+Surface Impact section rules (`## Surface Impact` — `plan save` refuses
+without it):
+- One row per surface: runtime behavior, API, data/schema, CLI/ops, UI,
+  docs, tests — classified `Changed`, `Read-only`, `Unchanged by design`,
+  `Deferred`, or `N-A`.
+- Every `Deferred` and `Unchanged by design` row carries a short reason —
+  an implicit surface is how API/CLI/docs/tests drift ships unreviewed.
+- Deferred rows that survive the task land in the deferral ledger with a
+  trigger (`./forge defer add`).
 
 Decisions section rules:
 - Every choice NOT derivable from BRIEF, architecture, or existing decision
@@ -34,6 +45,14 @@ Decisions section rules:
 Rules:
 - Planning model is high-reasoning.
 - Treat the in-repo docs as the system of record.
+- Run `./forge findings patterns` before drafting. If a RECURRING class
+  touches this story's area, the plan must either include the consolidation
+  (invariant decision + audit of every site) or set an explicit tripwire
+  ("if review flags <class> again, escalate per WORKFLOW.md Recurring
+  Findings") — never silently patch a known recurring class one more time.
+- Run `./forge lesson relevant --files <paths you expect to touch>` and honor
+  the lessons that apply; contradicting a recorded lesson is a decision, not
+  an accident.
 - Produce a decision-complete plan before implementation starts.
 - Keep implementation tasks bounded so Codex workers can own disjoint write scopes.
 - If requirements are vague, make them concrete before proposing code changes.

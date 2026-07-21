@@ -140,6 +140,26 @@ phases:
     owner: ".agents/scripts/pr_ready.py"
     merge: manual
 
+evolution:
+  lessons:
+    artifact: "plans/lessons.jsonl via ./forge lesson add"
+    schema: ".agents/schemas/lesson.json"
+    allowed:
+      - "implementer"
+      - "autoreview"
+      - "planner-high"
+      - "orchestrator"
+      - "human"
+    notes: >-
+      The learn->apply loop: record after a repeated failure or accepted
+      review finding; `forge lesson relevant` surfaces matching lessons
+      before planning/implementation; the skill-miner curates at retro
+      cadence (promote recurring lessons to decisions/constitution, retire
+      stale ones).
+  findings:
+    artifact: "./forge findings patterns over .factory/history/*/reviews/"
+    doctrine: "WORKFLOW.md 'Recurring Findings' — recurring class => consolidate or split out, never a fourth patch"
+
 disabled_in_factory_repos:
   - "gstack:/codex"
   - "gstack:/ship"

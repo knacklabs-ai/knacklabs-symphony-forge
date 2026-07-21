@@ -21,9 +21,11 @@ you what's missing. But this is the shape of the whole system:
 
 ```text
 grill ▶ SIGN-OFF ▶ grill ▶ EPICS ACCEPTED ▶ roadmap+team ▶ per task:
-  PLAN MODE (hook-forced) ▶ grill ▶ plan saved ▶ decompose ▶ implement
-  (rescue-only, tests + design skills attested) ▶ verify ▶ autoreview ▶
-  functional (if user-facing) ▶ assumptions guided ▶ pr_ready ▶ archive
+  PLAN MODE (hook-forced) ▶ grill ▶ plan saved (incl. Surface Impact) ▶
+  decompose (creates the stage tracker) ▶ per stage: implement (rescue-only)
+  ▶ LOCAL autoreview until clean ▶ commit ▶ stage done ▶ … ▶ verify ▶
+  ONE branch autoreview ▶ functional (if user-facing) ▶ assumptions guided ▶
+  pr_ready (stages done + refactor ratchet) ▶ archive
 ```
 
 - Three **grills** (adversarial gaps/contradictions passes): before sign-off,
@@ -38,6 +40,11 @@ grill ▶ SIGN-OFF ▶ grill ▶ EPICS ACCEPTED ▶ roadmap+team ▶ per task:
   recorded assumption and (for user-facing tasks) a functional check.
 - **Hygiene runs continuously**: secrets/oversize refused at the context
   inbox, repo budgets in CI, decision lifecycle + prototype isolation linted.
+- **The repo learns**: recurring review-finding classes surface via
+  `forge findings patterns` (3+ hits ⇒ a refactor story, not a fourth
+  patch); lessons ledger in `plans/lessons.jsonl` (`forge lesson relevant`
+  before work, `forge lesson add` after repeated failures); deferred scope
+  keeps a revisit trigger (`forge defer`).
 
 ---
 
@@ -47,7 +54,7 @@ Clone it wherever you keep repos — `./setup` records the location for the
 bootstrap skill:
 
 ```bash
-git clone git@github.com:knacklabs-ai/knacklabs-symphony-forge.git
+git clone git@github.com:knacklabs/symphony-forge.git
 cd symphony-forge
 ./setup
 ```
@@ -83,8 +90,21 @@ artifact schemas under `.agents/schemas/`), the vendored engineering
 constitution, the phase manifest + skill allowlist (`harness.yaml`), doc
 contracts, and an armed sign-off gate. It fails on a non-empty target.
 
-> Do NOT create client projects with `gh repo create --template` — a template
-> copy drags along the harness's own plans, run state, and history.
+The new repo has ZERO git relation to the harness (the machinery is a
+vendored copy — see "Template, Not Fork" in the README). Give it its own
+home and build the application inside it:
+
+```bash
+gh repo create knacklabs/my-app --private --source . --push
+# or: git remote add origin git@github.com:<org>/my-app.git && git push -u origin main
+```
+
+> Do NOT fork the harness and do NOT use `gh repo create --template` for
+> client projects. A fork makes every future harness upgrade a merge into
+> your app code; a template copy has no upgrade path at all — and both drag
+> along the harness's own plans, run state, and history. `forge init` +
+> `forge upgrade` is the only supported pairing: init creates the repo,
+> upgrade refreshes machinery-only, app code is never touched.
 
 > **Once per machine per repo:** run `direnv allow` inside the project.
 > That activates `.envrc`, which pins `GSTACK_HOME` to the repo's `.gstack/`

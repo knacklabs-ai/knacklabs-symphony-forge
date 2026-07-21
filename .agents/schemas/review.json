@@ -21,5 +21,6 @@
   },
   "ranges": {
     "score": [0, 10]
-  }
+  },
+  "findings_note": "Finding entries SHOULD be objects {category: kebab-case defect class, area: module/dir, summary} so `forge findings patterns` can cluster recurring classes across tasks; plain strings are accepted but cluster on exact text only."
 }

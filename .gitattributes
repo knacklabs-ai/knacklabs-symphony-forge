@@ -2,3 +2,4 @@
 # between pushes is a union, not a conflict. The driver is registered per
 # clone by the SessionStart hook (merge.jsonl-append.driver -> gstack-jsonl-merge).
 .gstack/**/*.jsonl merge=jsonl-append
+plans/lessons.jsonl merge=jsonl-append

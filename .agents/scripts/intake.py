@@ -57,7 +57,7 @@ active_plans = (
 stale_files = [
     p for p in (factory / "decomposition.json", factory / "verify.json",
                 factory / "tests.json", factory / "grills" / "plan.json",
-                factory / "signals.jsonl")
+                factory / "signals.jsonl", factory / "stages.json")
     if p.exists()
 ] + list((factory / "reviews").glob("*.json"))
 if stale_files or active_plans:

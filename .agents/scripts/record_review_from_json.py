@@ -22,6 +22,29 @@ def ensure_list(value):
     return [str(value)]
 
 
+def ensure_findings(field: str, value):
+    """Findings may be plain strings or structured {category, area, summary}
+    objects — structure is what lets `forge findings patterns` cluster the
+    same defect class across tasks. A malformed object is refused, not
+    silently stringified into an unclusterable repr."""
+    findings = []
+    for pos, entry in enumerate(value if isinstance(value, list) else ensure_list(value), 1):
+        if isinstance(entry, dict):
+            if not isinstance(entry.get("category"), str) or not entry["category"].strip() \
+                    or not isinstance(entry.get("summary"), str) or not entry["summary"].strip():
+                raise SystemExit(
+                    f"{field}[{pos}]: a structured finding needs non-empty string "
+                    "'category' and 'summary' (optional string 'area') — see "
+                    ".agents/schemas/review.json findings_note."
+                )
+            if "area" in entry and not isinstance(entry["area"], str):
+                raise SystemExit(f"{field}[{pos}]: 'area' must be a string")
+            findings.append(entry)
+        elif isinstance(entry, str) and entry.strip():
+            findings.append(entry)
+    return findings
+
+
 parser = argparse.ArgumentParser(description="Record a review artifact from structured JSON")
 parser.add_argument("--aspect", required=True, choices=["quality", "performance", "security"])
 parser.add_argument("--input", help="Path to a JSON file. If omitted, read JSON from stdin.")
@@ -42,7 +65,9 @@ require_skills(root, "review", payload)
 path = review_dir(root) / f"{args.aspect}.json"
 review = dict(payload)
 review["aspect"] = args.aspect
-for key in ("blocking_findings", "non_blocking_findings", "residual_risks", "reviewed_scope"):
+for key in ("blocking_findings", "non_blocking_findings"):
+    review[key] = ensure_findings(key, payload.get(key))
+for key in ("residual_risks", "reviewed_scope"):
     review[key] = ensure_list(payload.get(key))
 review.setdefault("recommendation", "approve-with-caveats")
 review["recorded_at"] = now_iso()

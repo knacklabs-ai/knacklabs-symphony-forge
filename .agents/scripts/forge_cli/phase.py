@@ -34,6 +34,14 @@ def cmd_next(args: argparse.Namespace) -> None:
             f"Harvest {pending_ctx} pending docs/context/ file(s) first "
             "(.agents/prompts/harvester.md; then forge.py context mark ...)"
         )
+    from .findings import recurring
+    recurring_classes = recurring(base)
+    if recurring_classes:
+        worst = recurring_classes[0]
+        steps.append(f"[EM] {len(recurring_classes)} RECURRING finding class(es) — e.g. "
+                     f"{worst['category']} x{worst['count']} — a design signal, not a fix "
+                     "queue: ./forge findings patterns, then consolidate via a refactor "
+                     "story + decision record")
     if not state:
         phase("uninitialized")
         steps.append("New project? scaffold with: forge.py init --name <project> --target <dir>")
@@ -125,6 +133,19 @@ def cmd_next(args: argparse.Namespace) -> None:
         ]
         if not tests.get("automated"):
             phase("implementing")
+            stages = load_json(factory / "stages.json", default={}).get("stages", [])
+            done_n = sum(1 for s in stages if s.get("status") == "done")
+            current = next((s for s in stages if s.get("status") != "done"), None)
+            if stages and current:
+                if current.get("status") == "active":
+                    action = f"{current['id']} is ACTIVE — {current.get('title')}"
+                else:
+                    action = (f"start {current['id']} ({current.get('title')}): "
+                              f"forge stage start {current['id']}")
+                steps.append(f"[dev] Stage progress: {done_n}/{len(stages)} done — {action}")
+                steps.append("[dev] Stage Loop (WORKFLOW.md): /codex:rescue implements → "
+                             "inspect diff → validate assumptions → smallest checks → "
+                             "LOCAL autoreview until clean → commit → forge stage done")
             steps.append("[dev] Implement the next bounded leaf task via /codex:rescue --background "
                          "(.agents/prompts/implementer.md)")
             if user_facing:
@@ -161,6 +182,11 @@ def cmd_next(args: argparse.Namespace) -> None:
     if proposed:
         steps.append(f"(Also: {proposed} proposed skill(s) await human review in "
                      ".agents/skills/proposed/)")
+    from .deferrals import open_count as deferrals_open
+    open_defers = deferrals_open(base)
+    if open_defers:
+        steps.append(f"({open_defers} deferred item(s) with revisit triggers — "
+                     "./forge defer list --open; reopen any whose trigger fired)")
     print("NEXT:")
     for i, step in enumerate(steps, 1):
         print(f"  {i}. {step}")

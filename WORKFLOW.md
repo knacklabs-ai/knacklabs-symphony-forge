@@ -101,6 +101,31 @@ GitHub issue whenever unharvested context or unreviewed proposals exist, and
 the SessionStart hook surfaces the same counts at the start of every agent
 session. The `/forge` Claude skill routes all of this.
 
+## Recurring Findings — a design signal
+
+Review findings accumulate per task (`.factory/history/<issue>/reviews/`;
+findings are structured `{category, area, summary}` per the review schema).
+`./forge findings patterns` clusters them by class; `forge next` and
+`pr_ready` surface any class recorded 3+ times. The rule (decision record
+`recurring-findings-escalation`): when the SAME class of issue surfaces more
+than twice in one area, STOP patching findings individually — recurring
+findings are a design signal, not a fix queue.
+
+- First distinguish a recurring **CLASS** (the same failure shape respawning —
+  the dangerous signal) from a converging **TAIL** (distinct real findings,
+  severity/count trending down — healthy, keep going). Do not over-escalate
+  a tail; do not under-escalate a class.
+- **CONSOLIDATE** when the churning area is self-contained and the reviews
+  have effectively specified the correct invariant: write the invariant as a
+  decision record, add a refactor story to the roadmap (`kind: refactor`)
+  that audits every site against it in one pass, and pin it with tests.
+- **SPLIT OUT** when the churn exists because the item is entangled with
+  other subsystems or is cycle-sized wearing a "quick win" label: remove it
+  from the current branch and defer it with an explicit revisit trigger
+  (`./forge defer add`).
+- Set the tripwire in advance ("if round N still churns X, split it") — in
+  the plan or the grill's `open_items` — and HONOR it.
+
 ## Event-Driven Delegation — signals
 
 Delegation is not fire-and-forget. While a background rescue runs, the
@@ -207,6 +232,30 @@ collides on nothing but `plans/roadmap.json` status flips — and
 further-along status wins; mid-merge it rebuilds from the merge stages).
 Commit the archive when `pr_ready` tells you to: evidence that isn't
 committed isn't merged.
+
+## Stage Loop — defects never enter history
+
+Recording the decomposition also creates `.factory/stages.json` — the
+mutable execution twin of the immutable decomposition (decision 0007), one
+stage per leaf task in execution order. The dev works stages strictly
+through the loop:
+
+1. `forge stage start <id>` (order-enforced; `--parallel` only for disjoint
+   `write_scope` per the Concurrency contract)
+2. `/codex:rescue` implements the stage in the task worktree
+3. the orchestrator inspects the diff and rejects overbuilt code
+4. that stage's assumption rows are validated (`forge assumptions list --open`)
+5. smallest relevant checks run
+6. **local autoreview on the UNCOMMITTED diff until clean** (`autoreview
+   --mode local`, run as a Codex handoff) — a stage commits only clean
+7. commit, then `forge stage done <id>`
+
+Per-stage local reviews are pre-commit hygiene and record nothing; the ONE
+branch-wide autoreview at the review phase remains the only review gate and
+sole producer of `.factory/reviews/*` (decision 0001 D6 unchanged — it
+catches cross-stage issues the local passes cannot see). `pr_ready.py`
+refuses while any stage is not done; `forge next` shows stage progress; the
+tracker archives to `.factory/history/<issue>/` at ship.
 
 ## Task Planning
 Per-task planning runs in Claude Code plan mode by default (exploration

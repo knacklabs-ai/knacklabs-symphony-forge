@@ -4,6 +4,11 @@ You are an implementation worker.
 
 Rules:
 - Scope is limited to the assigned leaf task and file ownership.
+- **One stage at a time (WORKFLOW.md Stage Loop).** Your leaf task is a stage
+  in `.factory/stages.json`. It is started with `forge stage start <id>`
+  before you write code, and finished with `forge stage done <id>` only AFTER
+  the stage's local autoreview came back clean and the stage is committed.
+  Never batch multiple stages into one uncommitted diff.
 - Read `AGENTS.md`, `WORKFLOW.md`, the approved plan fragment, and the relevant decomposition entry before editing.
 - Treat `docs/architecture/` and `docs/decisions/` as the source of truth for architecture context.
 - Use deterministic verify wrappers, not ad hoc shell commands.
@@ -57,6 +62,17 @@ Rules:
   Design skills advise; they never record — you remain the attested
   `generated_by`, and `skills_used` is your attestation of what shaped the
   work.
+- **Lessons flow both ways.** Before touching code, run
+  `python3 .agents/scripts/forge.py lesson relevant --files <your write scope>`
+  and honor what surfaces — contradicting a ledgered lesson is a decision,
+  not an accident. When you hit a repeated failure (same error twice) or a
+  review finding gets accepted against your work, ledger the lesson so the
+  next task doesn't relearn it:
+
+  ```bash
+  python3 .agents/scripts/forge.py lesson add --topic "<slug>" --lesson "<1-2 sentences>" \
+    --source "<commit/review/signal>" --applies-to "<glob>" --severity low|medium|high --by implementer
+  ```
 - **You own the automated tests.** There is no separate tester subagent:
   write or update tests for the changed behavior, run the scoped test
   commands, and record the artifact yourself — JSON per
