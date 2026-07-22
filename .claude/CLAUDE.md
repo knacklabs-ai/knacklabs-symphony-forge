@@ -33,10 +33,8 @@ Read `AGENTS.md` first; it is the contract. Standards live in `constitution/`
   the hook blocks product-code edits while unplanned — switch modes, don't
   fight it. Grill the plan (`/grill-me`), then it's approved only when saved:
   `python3 .agents/scripts/forge.py plan save --from <plan-file>`.
-- Decisions land in `docs/decisions/` via `./forge decision new <slug>`.
-  Acceptance is a HUMAN decision, not their keystroke: an explicit in-chat
-  confirmation authorizes running `./forge decision accept <slug> --by
-  "<their name>"` on their behalf; without it, relay and wait.
+- Decisions land via `./forge decision new <slug>`; acceptance is HUMAN — an
+  explicit chat confirmation lets you run the accept with `--by "<name>"`.
 - Phases ≥ planning require client sign-off (`python3 .agents/scripts/record_signoff.py`).
 - `python3 .agents/scripts/check_dual_runtime.py` must stay green.
 - gstack `/codex` and `/ship` are disabled in factory repos (see `harness.yaml`).
