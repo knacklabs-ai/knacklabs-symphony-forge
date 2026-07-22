@@ -1835,6 +1835,52 @@ def test_precompact_scratchpad_snapshots_facts_and_findings(repo, tmp_path):
     assert not pad.exists()
 
 
+def test_upgrade_preserves_client_claude_and_codex_surfaces(repo, tmp_path):
+    # the client grows its OWN Claude Code surfaces after adoption
+    (repo / ".claude" / "skills" / "own-client-skill").mkdir(parents=True, exist_ok=True)
+    (repo / ".claude" / "skills" / "own-client-skill" / "SKILL.md").write_text("client skill")
+    (repo / ".claude" / "skills" / "own-client-skill" / "mocking.md").write_text("ref file")
+    (repo / ".claude" / "agents").mkdir(exist_ok=True)
+    (repo / ".claude" / "agents" / "own-gatekeeper.md").write_text("client agent")
+    (repo / ".claude" / "launch.json").write_text("{}")
+    (repo / ".codex" / "agents" / "client-custom.toml").write_text("client toml")
+    (repo / ".agents" / "skills" / "own-agents-skill").mkdir(parents=True, exist_ok=True)
+    (repo / ".agents" / "skills" / "own-agents-skill" / "SKILL.md").write_text("client agents skill")
+    # ...and locally drifts a harness-owned file (must be refreshed)
+    (repo / ".claude" / "skills" / "forge" / "SKILL.md").write_text("stale local edit")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "client surfaces + drift")
+    proc = subprocess.run(
+        [sys.executable, str(HARNESS / ".agents" / "scripts" / "forge.py"),
+         "upgrade", "--target", str(repo)],
+        cwd=HARNESS, capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    # client-owned surfaces survive
+    assert (repo / ".claude" / "skills" / "own-client-skill" / "mocking.md").read_text() == "ref file"
+    assert (repo / ".claude" / "agents" / "own-gatekeeper.md").read_text() == "client agent"
+    assert (repo / ".claude" / "launch.json").exists()
+    assert (repo / ".codex" / "agents" / "client-custom.toml").read_text() == "client toml"
+    # harness-owned paths are refreshed, not left drifted
+    assert "stale local edit" not in (repo / ".claude" / "skills" / "forge" / "SKILL.md").read_text()
+    assert (repo / ".claude" / "settings.json").exists()
+    # client-installed .agents/skills survive; harness-shipped ones refresh
+    assert (repo / ".agents" / "skills" / "own-agents-skill" / "SKILL.md").read_text() == "client agents skill"
+    assert (repo / ".agents" / "skills" / "forge.md").exists()
+    # vendoring never ships build noise
+    assert not list((repo / ".agents").rglob("__pycache__"))
+    assert not list((repo / ".agents").rglob("*.pyc"))
+
+
+def test_repo_budget_refuses_tracked_build_noise(repo):
+    pyc = repo / ".agents" / "scripts" / "__pycache__"
+    pyc.mkdir(parents=True)
+    (pyc / "factory_lib.cpython-312.pyc").write_bytes(b"\x00")
+    git(repo, "add", "-f", "-A")
+    git(repo, "commit", "-q", "-m", "sneak bytecode past gitignore")
+    code, out = run(repo, "check_repo_budget.py", str(repo))
+    assert code != 0 and "build/tool noise" in out and "git rm --cached" in out
+
+
 def test_machine_readiness_checked_every_session(repo, tmp_path):
     import os
     bare_home = tmp_path / "bare-home"

@@ -77,12 +77,15 @@ def cmd_adopt(args: argparse.Namespace) -> None:
         if not src.exists():
             return
         for path in src.rglob("*"):
-            if path.is_file():
+            if path.is_file() and "__pycache__" not in path.parts \
+                    and path.suffix != ".pyc":
                 vendor_file(path, target / path.relative_to(harness))
 
     # Machinery trees are MERGED per file, not replaced wholesale — an existing
-    # repo's own .claude/skills/ must survive.
-    for tree in UPGRADE_TREES:
+    # repo's own .claude/skills/ must survive. (.claude is not in
+    # UPGRADE_TREES anymore — upgrade replaces it surgically — but adopt's
+    # per-file vendor is merge-safe, so the whole tree is fine here.)
+    for tree in UPGRADE_TREES + [".claude"]:
         vendor_tree(tree)
     # .github is not a machinery tree (mixed ownership): vendor only the harness
     # factory workflows, so the repo's own workflows (CI, deployment) survive.
