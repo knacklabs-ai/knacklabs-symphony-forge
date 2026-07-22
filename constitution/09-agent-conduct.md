@@ -18,9 +18,12 @@ Minimum code that solves the problem, nothing speculative: no features
 beyond the ask, no abstractions for single-use code, no unrequested
 flexibility or configurability, no error handling for impossible scenarios.
 If 200 lines could be 50, rewrite. The test: would a senior engineer call
-it overcomplicated? Then simplify. (Autoreview's quality lens treats
-over-engineering as a finding — except structure this constitution
-mandates.)
+it overcomplicated? Then simplify. This applies to PLANS before it applies
+to code: the smallest plan that meets the acceptance criteria, every task
+traceable to a criterion, no "for later" phases — the plan grill hunts
+simpler shapes and fails over-built plans before implementation; autoreview's
+quality lens catches whatever slips through (never structure this
+constitution mandates).
 
 ## 3. Surgical changes
 
