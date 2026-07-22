@@ -117,6 +117,10 @@ def cmd_init(args: argparse.Namespace) -> None:
     (target / "constitution" / "VENDORED_FROM").write_text(
         f"symphony-forge @ {commit}\nUpdate by re-vendoring from the harness repo; do not edit in place.\n"
     )
+    # Freeze the gate surface from birth (frozen-gate-integrity): the manifest
+    # is what check_vendor_integrity.py compares against until the next vendoring.
+    from check_vendor_integrity import write_manifest
+    write_manifest(target, commit)
 
     brief_src = root / "harness" / "nestjs-react" / "BRIEF_TEMPLATE.md"
     brief_dst = target / "docs" / "product" / "BRIEF.md"
